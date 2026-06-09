@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>案例海报生成器</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700;900&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+
+<body>
+  <main class="app-shell">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Hong Kong Greater Bay Area Educational Promotion Association</p>
+        <h1 data-page-title>批量海报生成器</h1>
+        <p class="hero-copy">
+          这是一套固定背景、固定模板的学员案例海报工具。用户只需要填写标题、副标题、三阶段升学路径并上传 1 到 5 张本地录取图片，系统就会按固定版式自动排版生成 9:16 海报。
+        </p>
+      </div>
+      <div class="hero-note">
+        <p>生成流程</p>
+        <ol>
+          <li>录入单个学员或导入批量表格</li>
+          <li>上传 1 到 5 张录取图片</li>
+          <li>系统自动套用固定布局</li>
+          <li>核对 9:16 预览</li>
+          <li>导出 SVG 或 PNG</li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="workspace">
+      <section class="panel form-panel">
+        <div class="panel-header">
+          <h2>单个学员录入</h2>
+          <p>合并后的固定背景图始终保持不变。单个学员支持上传 1 到 5 张录取图片，系统会按固定规则自动进入主图位和辅图位。</p>
+        </div>
+
+        <div class="field">
+          <label for="student-id-input">学员编号</label>
+          <input id="student-id-input" type="text" placeholder="例如：stu-001" />
+        </div>
+
+        <div class="field-grid two-columns">
+          <div class="field">
+            <label for="title-input">标题</label>
+            <input id="title-input" type="text" maxlength="24" placeholder="例如：2026学员成功案例" />
+            <p id="error-title" class="field-error" hidden></p>
+          </div>
+          <div class="field">
+            <label for="subtitle-input">副标题</label>
+            <input id="subtitle-input" type="text" maxlength="24" placeholder="例如：2026副学士升本科" />
+            <p id="error-subtitle" class="field-error" hidden></p>
+          </div>
+        </div>
+
+        <div class="field-grid three-columns">
+          <div class="field">
+            <label for="high-school-input">高中阶段</label>
+            <input id="high-school-input" type="text" maxlength="24" placeholder="例如：国内高考民办本科线" />
+            <p id="error-high-school" class="field-error" hidden></p>
+          </div>
+          <div class="field">
+            <label for="associate-input">副学士阶段</label>
+            <input id="associate-input" type="text" maxlength="24" placeholder="例如：PolyU HKCC 工商管理副学士" />
+            <p id="error-associate" class="field-error" hidden></p>
+          </div>
+          <div class="field">
+            <label for="bachelor-input">学士阶段</label>
+            <input id="bachelor-input" type="text" maxlength="24" placeholder="例如：岭南大学 公共管理及智能管治学士" />
+            <p id="error-bachelor" class="field-error" hidden></p>
+          </div>
+        </div>
+
+        <div class="field-grid two-columns typed-upload-grid">
+          <div class="field">
+            <label for="certificate-images-input">上传成绩单 / 证书</label>
+            <input id="certificate-images-input" type="file" accept="image/png,image/jpeg,image/webp" multiple />
+            <p class="field-hint">可只上传成绩单 / 证书；若未上传，该标签不会渲染。</p>
+          </div>
+          <div class="field">
+            <label for="offer-images-input">上传 Offer</label>
+            <input id="offer-images-input" type="file" accept="image/png,image/jpeg,image/webp" multiple />
+            <p class="field-hint">可只上传 Offer；若未上传，该标签不会渲染。</p>
+          </div>
+        </div>
+        <p class="field-hint">两类素材可二选一上传，也可同时上传，总数最多 5 张。</p>
+        <p id="error-images" class="field-error" hidden></p>
+
+        <div class="typed-image-groups">
+          <section class="typed-image-group">
+            <h3 class="image-group-title">成绩单 / 证书</h3>
+            <ul id="certificate-image-list" class="image-list"></ul>
+          </section>
+          <section class="typed-image-group">
+            <h3 class="image-group-title">Offer</h3>
+            <ul id="offer-image-list" class="image-list"></ul>
+          </section>
+        </div>
+
+        <div class="review-box">
+          <div class="review-header">
+            <h3>生成前摘要</h3>
+          </div>
+          <ul id="summary-list" class="review-list"></ul>
+        </div>
+
+        <div id="status-box" class="status-box" data-kind="info" hidden>
+          <p id="status-text"></p>
+        </div>
+
+        <div class="action-row">
+          <button id="generate-button" type="button" class="primary-button" disabled>
+            生成单张海报
+          </button>
+        </div>
+      </section>
+
+      <section class="panel preview-panel">
+        <div class="panel-header">
+          <h2>海报预览</h2>
+          <p>这里显示的是内置固定海报引擎的实时预览。正式结果会由本地引擎直接生成，不需要再配置第三方模板平台。</p>
+        </div>
+        <p id="brand-assets-warning" class="brand-warning" hidden></p>
+
+        <div class="layout-controls">
+          <div class="layout-control-group">
+            <span class="layout-control-label">全局模板</span>
+            <button id="save-layout-btn" type="button" class="secondary-button layout-mini-button">保存模板</button>
+            <select id="load-layout-select" class="layout-select">
+              <option value="">加载模板</option>
+            </select>
+            <button id="delete-layout-btn" type="button" class="ghost-button layout-mini-button">删除模板</button>
+          </div>
+          <div class="layout-control-group">
+            <span class="layout-control-label">当前草稿</span>
+            <button id="save-draft-btn" type="button" class="secondary-button layout-mini-button">保存草稿</button>
+            <select id="load-draft-select" class="layout-select">
+              <option value="">加载草稿</option>
+            </select>
+            <button id="delete-draft-btn" type="button" class="ghost-button layout-mini-button">删除草稿</button>
+          </div>
+          <div class="layout-control-group">
+            <span class="layout-control-label">模块操作</span>
+            <button id="hide-selected-btn" type="button" class="ghost-button layout-mini-button">隐藏选中模块</button>
+            <button id="restore-hidden-btn" type="button" class="ghost-button layout-mini-button">恢复全部隐藏</button>
+            <button id="reset-layout-btn" type="button" class="ghost-button layout-mini-button">恢复默认布局</button>
+          </div>
+          <div class="layout-control-meta">
+            <span id="layout-selection-label">未选中模块</span>
+            <span id="layout-persistence-label">拖拽图片、标签和卡片可调整位置</span>
+          </div>
+        </div>
+
+        <div id="poster-preview" class="poster-preview">
+          <div class="poster-background-layer" aria-hidden="true">
+            <img id="preview-background-image" alt="" />
+          </div>
+          <div class="poster-overlay">
+            <div class="poster-header">
+              <div class="poster-org-block">
+                <img id="preview-logo-image" class="poster-logo-image" alt="" hidden />
+                <p id="preview-org-name-cn" class="poster-org-name-cn">香港湾区教育咨询促进会</p>
+                <p id="preview-org-name-en" class="poster-org-name-en">HONG KONG GREATER BAY AREA EDUCATIONAL PROMOTION
+                  ASSOCIATION</p>
+              </div>
+              <div class="poster-slogan-block">
+                <p class="poster-slogan">让梦想起航 连接未来</p>
+                <p class="poster-slogan-en">Embark Your Dream, Connect to the Future</p>
+              </div>
+              <div class="poster-title-block">
+                <div class="title-frame">
+                  <h2 id="preview-title">2026学员成功案例</h2>
+                </div>
+                <p id="preview-subtitle" class="poster-subtitle">2026副学士升本科</p>
+              </div>
+            </div>
+
+            <div class="poster-main">
+              <section class="poster-left">
+                <div class="path-title-row">
+                  <span class="path-line"></span>
+                  <span class="path-diamond"></span>
+                  <p>副学士升本科路径</p>
+                  <span class="path-diamond"></span>
+                  <span class="path-line"></span>
+                </div>
+                <div id="preview-subtitle-pill" class="subtitle-pill" hidden></div>
+                <div class="path-step" id="preview-high-school">
+                  <div class="stage-icon stage-icon-high-school" aria-hidden="true">
+                    <span class="stage-icon-glyph stage-icon-cap"></span>
+                  </div>
+                  <div class="path-step-copy" id="preview-high-school-text">高中阶段文案</div>
+                </div>
+                <div class="path-arrow" id="arrow-1"></div>
+                <div class="path-step" id="preview-associate">
+                  <div class="stage-icon stage-icon-associate" aria-hidden="true">
+                    <span class="stage-icon-glyph stage-icon-building"></span>
+                  </div>
+                  <div class="path-step-copy" id="preview-associate-text">副学士阶段文案</div>
+                </div>
+                <div class="path-arrow" id="arrow-2"></div>
+                <div class="path-step" id="preview-bachelor">
+                  <div class="stage-icon stage-icon-bachelor" aria-hidden="true">
+                    <span class="stage-icon-glyph stage-icon-book"></span>
+                  </div>
+                  <div class="path-step-copy" id="preview-bachelor-text">学士阶段文案</div>
+                </div>
+              </section>
+
+              <section class="poster-right">
+                <div id="preview-certificate-chip" class="label-chip top-chip" hidden>
+                  <span class="chip-accent"></span>
+                  <span>真实成绩单 / 证书</span>
+                  <span class="chip-accent"></span>
+                </div>
+                <div id="preview-offer-chip" class="label-chip offer-chip" hidden>
+                  <span class="chip-accent"></span>
+                  <span>真实Offer</span>
+                  <span class="chip-accent"></span>
+                </div>
+                <div class="preview-board">
+                  <figure id="preview-primary-image" class="preview-photo-slot slot-primary" hidden>
+                    <img alt="主图位预览" />
+                  </figure>
+                  <figure id="preview-secondary-image-a" class="preview-photo-slot slot-secondary-a" hidden>
+                    <img alt="辅图位 A 预览" />
+                  </figure>
+                  <figure id="preview-secondary-image-b" class="preview-photo-slot slot-secondary-b" hidden>
+                    <img alt="辅图位 B 预览" />
+                  </figure>
+                  <figure id="preview-secondary-image-c" class="preview-photo-slot slot-secondary-c" hidden>
+                    <img alt="辅图位 C 预览" />
+                  </figure>
+                  <figure id="preview-secondary-image-d" class="preview-photo-slot slot-secondary-d" hidden>
+                    <img alt="辅图位 D 预览" />
+                  </figure>
+                  <div class="preview-empty">
+                    <span id="preview-image-count">当前 0 张图</span>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <div class="poster-footer">
+              <div class="footer-line footer-line-left">
+                <span class="footer-line-segment"></span>
+                <span class="footer-diamond"></span>
+              </div>
+              <p>真实案例展示</p>
+              <div class="footer-line footer-line-right">
+                <span class="footer-diamond"></span>
+                <span class="footer-line-segment"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <section class="workspace batch-workspace">
+      <section class="panel batch-panel">
+        <div class="panel-header">
+          <h2>批量导入</h2>
+          <p>
+            表格负责导入文本字段，图片通过文件名匹配。表头固定为：`studentId,title,subtitle,highSchoolStage,associateStage,bachelorStage,image1,image2,image3,image4,image5`。
+          </p>
+        </div>
+
+        <div class="field">
+          <label for="batch-csv-input">导入 CSV 表格</label>
+          <input id="batch-csv-input" type="file" accept=".csv,text/csv" />
+        </div>
+
+        <div class="field-grid two-columns typed-upload-grid">
+          <div class="field">
+            <label for="batch-certificate-images-input">导入批量成绩单 / 证书图片</label>
+            <input id="batch-certificate-images-input" type="file" accept="image/png,image/jpeg,image/webp" multiple />
+            <p class="field-hint">通过该入口上传的图片会被归类为成绩单 / 证书素材。</p>
+          </div>
+          <div class="field">
+            <label for="batch-offer-images-input">导入批量 Offer 图片</label>
+            <input id="batch-offer-images-input" type="file" accept="image/png,image/jpeg,image/webp" multiple />
+            <p class="field-hint">通过该入口上传的图片会被归类为 Offer 素材。</p>
+          </div>
+        </div>
+        <p class="field-hint">请让图片文件名与 CSV 里的 `image1~image5` 字段保持一致。</p>
+
+        <div class="action-row">
+          <button id="batch-generate-button" type="button" class="primary-button" disabled>
+            批量生成海报
+          </button>
+        </div>
+        <ul id="batch-records-list" class="batch-records-list"></ul>
+      </section>
+    </section>
+
+    <section class="panel result-panel">
+      <div class="panel-header">
+        <h2>正式海报结果</h2>
+        <p>这里展示由项目内置海报引擎直接生成的正式结果。单个和批量生成都会列在这里，并支持下载 SVG 与 PNG。</p>
+      </div>
+      <ul id="results-list" class="results-list"></ul>
+    </section>
+  </main>
+
+  <script src="./template-config.example.js"></script>
+  <script src="./app.js"></script>
+</body>
+
+</html>

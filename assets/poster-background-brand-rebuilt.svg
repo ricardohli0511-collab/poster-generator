@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920" fill="none">
+  <defs>
+    <linearGradient id="bgSky" x1="540" x2="540" y1="0" y2="1920">
+      <stop offset="0%" stop-color="#1548af" />
+      <stop offset="0.34" stop-color="#10398e" />
+      <stop offset="0.72" stop-color="#082966" />
+      <stop offset="1" stop-color="#051a47" />
+    </linearGradient>
+    <linearGradient id="goldTrail" x1="142" x2="1010" y1="1518" y2="1080">
+      <stop offset="0%" stop-color="#f4d281" stop-opacity="0.10" />
+      <stop offset="0.28" stop-color="#ffd886" stop-opacity="0.82" />
+      <stop offset="0.62" stop-color="#e5ba62" stop-opacity="0.96" />
+      <stop offset="1" stop-color="#9e6d21" stop-opacity="0.12" />
+    </linearGradient>
+    <linearGradient id="goldEdge" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#fff3ce" />
+      <stop offset="0.5" stop-color="#e2bb69" />
+      <stop offset="1" stop-color="#9e6f24" />
+    </linearGradient>
+    <radialGradient id="glowA" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(918 188) rotate(90) scale(336 336)">
+      <stop offset="0%" stop-color="#7bc3ff" stop-opacity="0.26" />
+      <stop offset="1" stop-color="#7bc3ff" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="glowB" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(188 274) rotate(90) scale(228 228)">
+      <stop offset="0%" stop-color="#7dd0ff" stop-opacity="0.14" />
+      <stop offset="1" stop-color="#7dd0ff" stop-opacity="0" />
+    </radialGradient>
+    <filter id="softBlur" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur stdDeviation="16" />
+    </filter>
+  </defs>
+
+  <rect width="1080" height="1920" fill="url(#bgSky)" />
+  <rect width="1080" height="1920" fill="#05173e" fill-opacity="0.06" />
+  <circle cx="918" cy="188" r="336" fill="url(#glowA)" />
+  <circle cx="188" cy="274" r="228" fill="url(#glowB)" />
+
+  <g opacity="0.86">
+    <path d="M0 1210C184 1160 346 1104 490 1030C658 944 810 822 1080 654V0H0V1210Z" fill="#2e62cf" fill-opacity="0.06" />
+    <path d="M0 1420C226 1332 392 1250 560 1146C724 1044 850 944 1080 786V1920H0V1420Z" fill="#081f58" fill-opacity="0.54" />
+  </g>
+
+  <g opacity="0.18" filter="url(#softBlur)">
+    <path d="M82 1524C306 1420 456 1334 670 1224C788 1164 906 1080 994 992" stroke="#ffe2a2" stroke-width="72" stroke-linecap="round" />
+  </g>
+  <path d="M118 1512C324 1418 468 1344 674 1236C806 1166 914 1086 994 1002" stroke="url(#goldTrail)" stroke-width="54" stroke-linecap="round" />
+  <path d="M910 908L1010 964L950 1064" stroke="#ffd780" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" />
+
+  <g transform="translate(88 58)">
+    <rect x="0" y="0" width="904" height="144" rx="34" fill="#0b2d78" fill-opacity="0.18" />
+    <g transform="translate(26 14)">
+      <circle cx="58" cy="58" r="58" fill="#0b317f" stroke="url(#goldEdge)" stroke-width="5" />
+      <circle cx="58" cy="58" r="43" fill="none" stroke="#fff7de" stroke-opacity="0.24" stroke-width="2" />
+      <path d="M58 24L68 48H95L73 63L82 90L58 76L34 90L43 63L21 48H48L58 24Z" fill="#f4d189" />
+    </g>
+    <text x="132" y="66" fill="#f7e7b6" font-size="35" font-weight="700" letter-spacing="1">香港灣區教育諮詢促進會</text>
+    <text x="132" y="108" fill="#f7e7b6" font-size="18" font-weight="600" letter-spacing="1.9">
+      HONG KONG GREATER BAY AREA EDUCATIONAL PROMOTION ASSOCIATION
+    </text>
+    <path d="M694 114H852" stroke="#f6d68a" stroke-opacity="0.56" stroke-width="2.4" stroke-linecap="round" />
+    <rect x="860" y="109" width="10" height="10" fill="url(#goldEdge)" transform="rotate(45 865 114)" />
+  </g>
+
+  <g opacity="0.14">
+    <path d="M754 224C858 284 956 372 1046 482" stroke="#c6dcff" stroke-width="2" stroke-dasharray="4 12" />
+    <path d="M60 1718C126 1694 198 1678 274 1674C394 1668 510 1714 626 1720C768 1728 908 1676 1080 1540" stroke="#f8da90" stroke-opacity="0.22" stroke-width="2" stroke-dasharray="6 12" />
+  </g>
+
+  <g>
+    <path d="M0 1680C88 1648 156 1624 238 1614C352 1600 454 1638 560 1654C702 1674 842 1640 958 1566C1014 1530 1056 1494 1080 1466V1920H0V1680Z" fill="#08214f" />
+    <path d="M0 1742C112 1712 212 1694 312 1692C430 1690 516 1728 610 1740C742 1758 864 1732 972 1664C1020 1634 1056 1600 1080 1574V1920H0V1742Z" fill="#0b285f" />
+  </g>
+
+  <g opacity="0.72">
+    <path d="M74 1864H330" stroke="#f1d79b" stroke-width="2.8" stroke-linecap="round" />
+    <path d="M748 1864H1004" stroke="#f1d79b" stroke-width="2.8" stroke-linecap="round" />
+    <rect x="340" y="1858" width="12" height="12" fill="url(#goldEdge)" transform="rotate(45 346 1864)" />
+    <rect x="728" y="1858" width="12" height="12" fill="url(#goldEdge)" transform="rotate(45 734 1864)" />
+  </g>
+</svg>
