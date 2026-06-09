@@ -21,7 +21,7 @@ window.POSTER_TOOL_CONFIG = {
   assets: {
     // 正式固定背景恢复为旧协会背景图，不属于用户上传内容。
     backgroundImage:
-      "./assets/香港灣區教育諮詢促進會 HONG KONG GREATER BAY AREA EDUCATIONAL PROMOTION ASSOCIATION.png",
+      "./assets/bg.png",
     // 为兼容旧配置保留该字段，但当前固定背景中不再单独使用 logo 文件。
     logoImage: "",
   },
