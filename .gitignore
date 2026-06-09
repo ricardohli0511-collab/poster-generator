@@ -1,0 +1,18 @@
+# 开发内部文档
+.trae/
+docs/superpowers/
+
+# 视觉回归测试截图
+.visual-regression/
+
+# 临时文件
+.**.swp
+.tmp-*
+
+# 依赖
+node_modules/
+package-lock.json
+
+# 系统文件
+.DS_Store
+Thumbs.db
