@@ -436,6 +436,7 @@ input:focus {
   position: relative;
   width: 100%;
   aspect-ratio: 9 / 16;
+  container-type: inline-size;
   overflow: hidden;
   border-radius: 28px;
   background-color: #072761;
@@ -576,7 +577,7 @@ input:focus {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  width: clamp(120px, 28%, 260px);
+  width: clamp(80px, 28cqw, 260px);
   height: 1.5px;
   background: linear-gradient(90deg, rgba(255, 248, 230, 0), rgba(227, 194, 128, 0.85), rgba(255, 248, 230, 0));
 }
@@ -642,7 +643,7 @@ input:focus {
   border: 8px solid transparent;
   color: #fffef5;
   font-family: "Noto Serif SC", "PingFang SC", "Hiragino Sans GB", serif;
-  font-size: clamp(52px, 6.5vw, 84px);
+  font-size: clamp(28px, 7.8cqw, 84px);
   font-weight: 900;
   line-height: 1.06;
   letter-spacing: 0.22em;
@@ -1061,7 +1062,6 @@ input:focus {
   cursor: grab;
   user-select: none;
   -webkit-user-select: none;
-  touch-action: none;
 }
 
 .preview-photo-slot.dragging,
@@ -1190,6 +1190,12 @@ input:focus {
   text-decoration: none;
 }
 
+@media (max-width: 1020px) {
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 @media (max-width: 1180px) {
 
   .hero,
@@ -1221,7 +1227,7 @@ input:focus {
 
 @media (max-width: 720px) {
   .app-shell {
-    width: min(100% - 20px, 100%);
+    width: calc(100% - 20px);
     padding: 18px 0 36px;
   }
 
@@ -1233,6 +1239,10 @@ input:focus {
 
   .poster-overlay {
     padding: 80px 18px 18px;
+  }
+
+  .poster-preview {
+    max-height: 75vh;
   }
 
   .poster-title-block h2 {

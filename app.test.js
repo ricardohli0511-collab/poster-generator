@@ -398,7 +398,7 @@ test("mergeConfig keeps rebuilt background and layout reference geometry", () =>
 test("template config restores the old association background as the only formal background", () => {
   const templateConfigSource = fs.readFileSync("./template-config.example.js", "utf8");
 
-  assert.match(templateConfigSource, /香港灣區教育諮詢促進會 HONG KONG GREATER BAY AREA EDUCATIONAL PROMOTION ASSOCIATION\.png/);
+  assert.match(templateConfigSource, /"\.\/assets\/bg\.png"/);
   assert.doesNotMatch(templateConfigSource, /poster-background-brand-rebuilt\.svg/);
 });
 

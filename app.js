@@ -1409,7 +1409,7 @@
     const el = document.getElementById(elementId);
     if (el) {
       el.classList.add("dragging");
-      // 指针捕获确保拖拽过程流畅，不受其他 DOM 事件干扰
+      el.style.touchAction = "none";
       if (el.setPointerCapture) el.setPointerCapture(event.pointerId);
     }
   }
@@ -1454,6 +1454,7 @@
     const el = document.getElementById(dragSession.elementId);
     if (el) {
       el.classList.remove("dragging");
+      el.style.touchAction = "";
       if (el.releasePointerCapture && dragSession.pointerId != null) {
         el.releasePointerCapture(dragSession.pointerId);
       }
