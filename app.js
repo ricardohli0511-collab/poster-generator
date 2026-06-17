@@ -808,7 +808,7 @@
       subtitle: { ...config.textBlocks.subtitle },
       highSchoolStage: applyOffsetToPoint({ ...config.textBlocks.highSchoolStage }, "preview-high-school", layoutEditor.offsets),
       associateStage: applyOffsetToPoint({ ...config.textBlocks.associateStage }, "preview-associate", layoutEditor.offsets),
-      bachelorStage: applyOffsetToPoint({ ...config.textBlocks.bachelorStage }, "preview-bachelor", layoutEditor.offsets),
+      bachelorStage: applyOffsetToPoint({ ...config.textBlocks.bachelorStage, y: config.textBlocks.bachelorStage.y - pathArea.cards.bachelor.y + stageLayout.bachelorY }, "preview-bachelor", layoutEditor.offsets),
     };
     const pathCenterX = Math.round(highSchoolCard.x + highSchoolCard.width / 2);
     const leftLineStartX = Math.round(pathCenterX - 300);
