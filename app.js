@@ -2132,8 +2132,8 @@
       state.batchRecords = state.batchRecords.map((record) => {
         const exact = exactMatched.find(r => r.studentId === record.studentId);
         const auto = autoMatched.find(r => r.studentId === record.studentId);
-        if (exact && exact.missingImages.length === 0) return exact;
-        if (auto && auto.missingImages.length === 0) return auto;
+        if (exact && exact.images.length > 0) return exact;
+        if (auto && auto.images.length > 0) return auto;
         return auto || exact || record;
       });
 
@@ -2205,8 +2205,8 @@
         state.batchRecords = state.batchRecords.map((record) => {
           const exact = exactMatched.find(r => r.studentId === record.studentId);
           const auto = autoMatched.find(r => r.studentId === record.studentId);
-          if (exact && exact.missingImages.length === 0) return exact;
-          if (auto && auto.missingImages.length === 0) return auto;
+          if (exact && exact.images.length > 0) return exact;
+          if (auto && auto.images.length > 0) return auto;
           return auto || exact || record;
         });
       }
