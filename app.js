@@ -1110,7 +1110,10 @@
     return rows.map((row) => {
       const record = {};
       headers.forEach((header, index) => {
-        record[header] = (row[index] || "").toString();
+        const key = sanitizeText(header);
+        if (key) {
+          record[key] = (row[index] || "").toString();
+        }
       });
       const imageNames = ["image1", "image2", "image3", "image4", "image5"]
         .map((key) => sanitizeText(record[key] || ""))
@@ -1132,7 +1135,7 @@
   function getActiveStageLayout(record, config) {
     const layout = (config && config.layoutReference) || DEFAULT_LAYOUT_REFERENCE;
     const pathCards = (layout.pathArea && layout.pathArea.cards) || DEFAULT_LAYOUT_REFERENCE.pathArea.cards;
-    const hasAssociate = !!(record && record.associateStage || "").trim();
+    const hasAssociate = !!(record?.associateStage || "").trim();
 
     if (hasAssociate) {
       return {
@@ -2071,15 +2074,20 @@
   }
 
   async function handleManualTypedImageUpload(event, elements, state, inputConfig, assetType) {
-    const images = await readTypedImages(event.target.files, assetType);
-    if (assetType === "certificate") {
-      state.manualRecord.certificateImages = [...(state.manualRecord.certificateImages || []), ...images];
-    } else {
-      state.manualRecord.offerImages = [...(state.manualRecord.offerImages || []), ...images];
+    try {
+      const images = await readTypedImages(event.target.files, assetType);
+      if (assetType === "certificate") {
+        state.manualRecord.certificateImages = [...(state.manualRecord.certificateImages || []), ...images];
+      } else {
+        state.manualRecord.offerImages = [...(state.manualRecord.offerImages || []), ...images];
+      }
+      setManualRecordImages(state);
+    } catch (error) {
+      setStatus(elements, "error", "图片读取失败：" + (error.message || "未知错误"));
+    } finally {
+      event.target.value = "";
+      refreshUI(elements, state, inputConfig);
     }
-    setManualRecordImages(state);
-    event.target.value = "";
-    refreshUI(elements, state, inputConfig);
   }
 
   async function handleBatchImageUpload(event, elements, state, inputConfig) {
