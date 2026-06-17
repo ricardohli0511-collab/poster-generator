@@ -847,6 +847,12 @@ input:focus {
   -webkit-backdrop-filter: blur(8px);
 }
 
+.path-step[hidden],
+.path-step[hidden].is-selected,
+.path-step[hidden].dragging {
+  display: none;
+}
+
 .path-step::before {
   content: "";
   position: absolute;
