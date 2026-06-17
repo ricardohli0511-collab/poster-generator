@@ -1099,6 +1099,68 @@
     });
   }
 
+  function buildBatchRecordsFromTable(rows, headers) {
+    return rows.map((row) => {
+      const record = {};
+      headers.forEach((header, index) => {
+        record[header] = (row[index] || "").toString();
+      });
+      const imageNames = ["image1", "image2", "image3", "image4", "image5"]
+        .map((key) => sanitizeText(record[key] || ""))
+        .filter(Boolean);
+      return {
+        studentId: sanitizeText(record.studentId),
+        title: sanitizeText(record.title),
+        subtitle: sanitizeText(record.subtitle),
+        highSchoolStage: sanitizeText(record.highSchoolStage),
+        associateStage: sanitizeText(record.associateStage),
+        bachelorStage: sanitizeText(record.bachelorStage),
+        imageNames,
+        images: [],
+        missingImages: [],
+      };
+    });
+  }
+
+  function classifyImageByKeyword(filename) {
+    const lower = (filename || "").toLowerCase();
+    if (/offer|录取|admission|offre/.test(lower)) return "offer";
+    if (/成绩单|证书|cert|transcript/.test(lower)) return "certificate";
+    return "certificate";
+  }
+
+  function autoMatchImages(studentId, imageFiles) {
+    const normalized = normalizeImages(imageFiles);
+    return normalized.filter((image) => {
+      const name = (image.name || "").toLowerCase();
+      const id = (studentId || "").toLowerCase();
+      if (!id) return false;
+      if (name === id) return true;
+      if (!name.startsWith(id)) return false;
+      const nextChar = name[id.length];
+      return nextChar === "-" || nextChar === "_" || nextChar === ".";
+    }).map((image) => {
+      const assetType = classifyImageByKeyword(image.name);
+      return { ...image, assetType };
+    });
+  }
+
+  function autoMatchAllRecords(records, imagePool) {
+    return (records || []).map((record) => {
+      const matchedImages = autoMatchImages(record.studentId, imagePool);
+      const certificateImages = matchedImages.filter(img => img.assetType === "certificate");
+      const offerImages = matchedImages.filter(img => img.assetType === "offer");
+      const normalizedRecord = createNormalizedRecord({
+        ...record,
+        certificateImages,
+        offerImages,
+        images: matchedImages,
+      });
+      const missingImages = matchedImages.length === 0 ? ["未匹配到任何图片"] : [];
+      return { ...record, ...normalizedRecord, missingImages };
+    });
+  }
+
   async function exportBatchPosters(records, inputConfig, layoutEditorState) {
     return Promise.all(
       (records || []).map(async (record) => {
@@ -1281,21 +1343,42 @@
     state.batchRecords.forEach((record) => {
       const item = document.createElement("li");
       item.className = "batch-item";
+      item.dataset.studentId = record.studentId || "";
 
       const title = document.createElement("strong");
       title.textContent = record.studentId || record.title || "未命名记录";
 
       const meta = document.createElement("span");
-      if (record.missingImages?.length) {
+      const hasImages = (record.images || []).length > 0;
+      const hasMissing = record.missingImages?.length && record.missingImages[0] !== "未匹配到任何图片";
+      if (hasMissing) {
         meta.textContent = `缺图：${record.missingImages.join("、")}`;
         item.dataset.state = "error";
-      } else if ((record.images || []).length) {
+      } else if (hasImages) {
         meta.textContent = `已匹配 ${(record.images || []).length} 张图片`;
         item.dataset.state = "ready";
       } else {
-        meta.textContent = `待匹配 ${(record.imageNames || []).length} 张图片`;
+        meta.textContent = "待匹配图片";
         item.dataset.state = "pending";
       }
+
+      item.addEventListener("click", () => {
+        state.manualRecord = {
+          ...state.manualRecord,
+          studentId: record.studentId,
+          title: record.title,
+          subtitle: record.subtitle,
+          highSchoolStage: record.highSchoolStage,
+          associateStage: record.associateStage,
+          bachelorStage: record.bachelorStage,
+          certificateImages: record.certificateImages || [],
+          offerImages: record.offerImages || [],
+        };
+        const cleaned = createNormalizedRecord(state.manualRecord);
+        state.manualRecord = { ...state.manualRecord, ...cleaned };
+        setManualRecordImages(state);
+        refreshUI(elements, state, globalScope.POSTER_TOOL_CONFIG || {});
+      });
 
       item.appendChild(title);
       item.appendChild(meta);
@@ -1949,27 +2032,72 @@
     refreshUI(elements, state, inputConfig);
   }
 
-  async function handleBatchTypedImageUpload(event, elements, state, inputConfig, assetType) {
-    const images = await readTypedImages(event.target.files, assetType);
-    state.batchImagePool = [
-      ...state.batchImagePool.filter((image) => image.assetType !== assetType),
-      ...images,
-    ];
-    state.batchRecords = matchRecordImages(state.batchRecords, state.batchImagePool);
+  async function handleBatchImageUpload(event, elements, state, inputConfig) {
+    const rawImages = await readTypedImages(event.target.files, "");
+    const classifiedImages = rawImages.map((image) => {
+      const assetType = classifyImageByKeyword(image.name);
+      return { ...image, assetType };
+    });
+    state.batchImagePool = [...state.batchImagePool, ...classifiedImages];
+
+    const autoMatched = autoMatchAllRecords(state.batchRecords, state.batchImagePool);
+    const exactMatched = matchRecordImages(state.batchRecords, state.batchImagePool);
+    state.batchRecords = state.batchRecords.map((record) => {
+      const exact = exactMatched.find(r => r.studentId === record.studentId);
+      const auto = autoMatched.find(r => r.studentId === record.studentId);
+      if (exact && exact.missingImages.length === 0) return exact;
+      if (auto && auto.missingImages.length === 0) return auto;
+      return auto || exact || record;
+    });
+
     event.target.value = "";
     refreshUI(elements, state, inputConfig);
   }
 
-  async function handleCsvUpload(event, elements, state, inputConfig) {
+  async function handleTableUpload(event, elements, state, inputConfig) {
     const file = event.target.files?.[0];
-    if (!file) {
-      return;
+    if (!file) return;
+
+    const isXlsx = file.name.toLowerCase().endsWith(".xlsx");
+
+    if (isXlsx) {
+      const data = await file.arrayBuffer();
+      const workbook = typeof XLSX !== "undefined" ? XLSX.read(data, { type: "array" }) : null;
+      if (!workbook) { state.batchRecords = []; return; }
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+      if (rows.length < 2) { state.batchRecords = []; return; }
+      const headers = rows[0].map((h) => (h || "").toString().trim());
+      const dataRows = rows.slice(1).filter((row) => row.some((cell) => cell != null && cell !== ""));
+      state.batchRecords = buildBatchRecordsFromTable(dataRows, headers);
+    } else {
+      const csvText = await file.text();
+      const firstLine = csvText.split("\n")[0] || "";
+      const isNewFormat = firstLine.split(",").length <= 7;
+      if (isNewFormat) {
+        const rows = csvText.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+        if (rows.length < 2) { state.batchRecords = []; return; }
+        const headers = parseCsvLine(rows[0]);
+        const dataRows = rows.slice(1).map(line => parseCsvLine(line));
+        state.batchRecords = buildBatchRecordsFromTable(dataRows, headers);
+      } else {
+        state.batchRecords = buildBatchRecordsFromCsv(csvText);
+      }
     }
-    const csvText = await file.text();
-    state.batchRecords = buildBatchRecordsFromCsv(csvText);
+
     if (state.batchImagePool.length) {
-      state.batchRecords = matchRecordImages(state.batchRecords, state.batchImagePool);
+      const autoMatched = autoMatchAllRecords(state.batchRecords, state.batchImagePool);
+      const exactMatched = matchRecordImages(state.batchRecords, state.batchImagePool);
+      state.batchRecords = state.batchRecords.map((record) => {
+        const exact = exactMatched.find(r => r.studentId === record.studentId);
+        const auto = autoMatched.find(r => r.studentId === record.studentId);
+        if (exact && exact.missingImages.length === 0) return exact;
+        if (auto && auto.missingImages.length === 0) return auto;
+        return auto || exact || record;
+      });
     }
+
     event.target.value = "";
     refreshUI(elements, state, inputConfig);
   }
@@ -2085,8 +2213,9 @@
       certificateImageList: document.querySelector("#certificate-image-list"),
       offerImageList: document.querySelector("#offer-image-list"),
       csvInput: document.querySelector("#batch-csv-input"),
-      batchCertificateImagesInput: document.querySelector("#batch-certificate-images-input"),
-      batchOfferImagesInput: document.querySelector("#batch-offer-images-input"),
+      batchTableInput: document.querySelector("#batch-table-input"),
+      batchImagesInput: document.querySelector("#batch-images-input"),
+      downloadTemplateLink: document.querySelector("#download-template-link"),
       batchList: document.querySelector("#batch-records-list"),
       generateButton: document.querySelector("#generate-button"),
       batchGenerateButton: document.querySelector("#batch-generate-button"),
@@ -2262,22 +2391,32 @@
       );
     }
 
-    if (elements.csvInput) {
-      elements.csvInput.addEventListener("change", (event) =>
-        handleCsvUpload(event, elements, state, config)
+    if (elements.batchTableInput) {
+      elements.batchTableInput.addEventListener("change", (event) =>
+        handleTableUpload(event, elements, state, config)
       );
     }
 
-    if (elements.batchCertificateImagesInput) {
-      elements.batchCertificateImagesInput.addEventListener("change", (event) =>
-        handleBatchTypedImageUpload(event, elements, state, config, "certificate")
+    if (elements.batchImagesInput) {
+      elements.batchImagesInput.addEventListener("change", (event) =>
+        handleBatchImageUpload(event, elements, state, config)
       );
     }
 
-    if (elements.batchOfferImagesInput) {
-      elements.batchOfferImagesInput.addEventListener("change", (event) =>
-        handleBatchTypedImageUpload(event, elements, state, config, "offer")
-      );
+    if (elements.downloadTemplateLink) {
+      elements.downloadTemplateLink.addEventListener("click", (event) => {
+        event.preventDefault();
+        const headers = ["学员编号", "标题", "副标题", "高中阶段", "副学士阶段", "学士阶段"];
+        const rows = [headers, ["stu-001", "示例标题", "示例副标题", "示例高中阶段", "示例副学士阶段", "示例学士阶段"]];
+        const csv = rows.map(row => row.join(",")).join("\n");
+        const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "海报批量导入模板.csv";
+        a.click();
+        URL.revokeObjectURL(url);
+      });
     }
 
     if (elements.generateButton) {
@@ -2456,7 +2595,11 @@
     createPosterSvgMarkup,
     exportPoster,
     buildBatchRecordsFromCsv,
+    buildBatchRecordsFromTable,
     matchRecordImages,
+    classifyImageByKeyword,
+    autoMatchImages,
+    autoMatchAllRecords,
     exportBatchPosters,
   };
 

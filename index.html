@@ -268,28 +268,24 @@
         <div class="panel-header">
           <h2>批量导入</h2>
           <p>
-            表格负责导入文本字段，图片通过文件名匹配。表头固定为：`studentId,title,subtitle,highSchoolStage,associateStage,bachelorStage,image1,image2,image3,image4,image5`。
+            上传 Excel（.xlsx）或 CSV 表格导入学员数据。表格只需 6 列：<code>学员编号、标题、副标题、高中阶段、副学士阶段、学士阶段</code>。
+            <a href="#" id="download-template-link">下载空白模板</a>
           </p>
         </div>
 
         <div class="field">
-          <label for="batch-csv-input">导入 CSV 表格</label>
-          <input id="batch-csv-input" type="file" accept=".csv,text/csv" />
+          <label for="batch-table-input">导入数据表格（.xlsx / .csv）</label>
+          <input id="batch-table-input" type="file" accept=".xlsx,.csv,text/csv" />
         </div>
 
-        <div class="field-grid two-columns typed-upload-grid">
-          <div class="field">
-            <label for="batch-certificate-images-input">导入批量成绩单 / 证书图片</label>
-            <input id="batch-certificate-images-input" type="file" accept="image/png,image/jpeg,image/webp" multiple />
-            <p class="field-hint">通过该入口上传的图片会被归类为成绩单 / 证书素材。</p>
-          </div>
-          <div class="field">
-            <label for="batch-offer-images-input">导入批量 Offer 图片</label>
-            <input id="batch-offer-images-input" type="file" accept="image/png,image/jpeg,image/webp" multiple />
-            <p class="field-hint">通过该入口上传的图片会被归类为 Offer 素材。</p>
-          </div>
+        <div class="field">
+          <label for="batch-images-input">导入所有图片（支持多选）</label>
+          <input id="batch-images-input" type="file" accept="image/png,image/jpeg,image/webp" multiple />
+          <p class="field-hint">
+            图片文件名请以学员编号开头，如 <code>stu-001-成绩单.png</code>、<code>stu-001-Offer.jpg</code>，
+            系统会自动按编号前缀匹配到对应学员，并根据"成绩单/证书/Offer/录取"等关键词区分类型。
+          </p>
         </div>
-        <p class="field-hint">请让图片文件名与 CSV 里的 `image1~image5` 字段保持一致。</p>
 
         <div class="action-row">
           <button id="batch-generate-button" type="button" class="primary-button" disabled>
@@ -310,6 +306,7 @@
   </main>
 
   <script src="./template-config.example.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script src="./app.js"></script>
 </body>
 

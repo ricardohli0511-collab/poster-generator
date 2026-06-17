@@ -291,6 +291,17 @@ input:focus {
 .batch-item {
   display: grid;
   gap: 6px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.batch-item:hover {
+  background-color: rgba(212, 169, 78, 0.1);
+}
+
+.batch-item.preview-active {
+  border-color: var(--primary, #d6b167);
+  background-color: rgba(212, 169, 78, 0.15);
 }
 
 .batch-item[data-state="ready"] {

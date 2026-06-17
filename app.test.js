@@ -1412,3 +1412,76 @@ test("exportBatchPosters keeps failures scoped to the affected record", async ()
   assert.equal(results[1].ok, false);
   assert.match(results[1].error, /请先补齐标题、副标题、三阶段文案并上传 1 到 5 张图片/);
 });
+
+test("classifyImageByKeyword detects certificate keywords", () => {
+  const { classifyImageByKeyword } = require("./app.js");
+  assert.equal(classifyImageByKeyword("stu-001-成绩单.png"), "certificate");
+  assert.equal(classifyImageByKeyword("stu-001-证书.jpg"), "certificate");
+  assert.equal(classifyImageByKeyword("stu-001-cert.pdf"), "certificate");
+  assert.equal(classifyImageByKeyword("stu-001-transcript.png"), "certificate");
+});
+
+test("classifyImageByKeyword detects offer keywords", () => {
+  const { classifyImageByKeyword } = require("./app.js");
+  assert.equal(classifyImageByKeyword("stu-001-Offer.png"), "offer");
+  assert.equal(classifyImageByKeyword("stu-001-offer.jpg"), "offer");
+  assert.equal(classifyImageByKeyword("stu-001-录取.png"), "offer");
+  assert.equal(classifyImageByKeyword("stu-001-admission.pdf"), "offer");
+});
+
+test("classifyImageByKeyword defaults to certificate for unknown keywords", () => {
+  const { classifyImageByKeyword } = require("./app.js");
+  assert.equal(classifyImageByKeyword("stu-001-其他.png"), "certificate");
+  assert.equal(classifyImageByKeyword("photo.jpg"), "certificate");
+});
+
+test("autoMatchImages groups images by studentId prefix", () => {
+  const { autoMatchImages } = require("./app.js");
+  const images = [
+    { name: "stu-001-成绩单.png", previewUrl: "a" },
+    { name: "stu-001-Offer.jpg", previewUrl: "b" },
+    { name: "stu-002-证书.png", previewUrl: "c" },
+    { name: "unrelated.png", previewUrl: "d" },
+  ];
+  const result = autoMatchImages("stu-001", images);
+  const certImgs = result.filter(img => img.assetType === "certificate");
+  const offerImgs = result.filter(img => img.assetType === "offer");
+  assert.equal(result.length, 2);
+  assert.equal(certImgs.length, 1);
+  assert.equal(offerImgs.length, 1);
+  assert.equal(certImgs[0].name, "stu-001-成绩单.png");
+  assert.equal(offerImgs[0].name, "stu-001-Offer.jpg");
+});
+
+test("autoMatchImages returns empty for no matches", () => {
+  const { autoMatchImages } = require("./app.js");
+  const images = [{ name: "stu-002-证书.png", previewUrl: "a" }];
+  const result = autoMatchImages("stu-001", images);
+  assert.equal(result.length, 0);
+});
+
+test("buildBatchRecordsFromTable handles 6-column format", () => {
+  const { buildBatchRecordsFromTable } = require("./app.js");
+  const rows = [
+    ["stu-001", "标题A", "副标题A", "高中A", "副学士A", "学士A"],
+    ["stu-002", "标题B", "副标题B", "高中B", "副学士B", "学士B"],
+  ];
+  const headers = ["studentId", "title", "subtitle", "highSchoolStage", "associateStage", "bachelorStage"];
+  const records = buildBatchRecordsFromTable(rows, headers);
+  assert.equal(records.length, 2);
+  assert.equal(records[0].studentId, "stu-001");
+  assert.equal(records[0].title, "标题A");
+  assert.equal(records[1].studentId, "stu-002");
+});
+
+test("buildBatchRecordsFromTable handles 11-column format", () => {
+  const { buildBatchRecordsFromTable } = require("./app.js");
+  const rows = [
+    ["stu-001", "标题", "副标题", "高中", "副学士", "学士", "", "", "", "", ""],
+  ];
+  const headers = ["studentId", "title", "subtitle", "highSchoolStage", "associateStage", "bachelorStage", "image1", "image2", "image3", "image4", "image5"];
+  const records = buildBatchRecordsFromTable(rows, headers);
+  assert.equal(records.length, 1);
+  assert.equal(records[0].studentId, "stu-001");
+  assert.equal(records[0].imageNames.length, 0);
+});
