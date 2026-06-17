@@ -1107,10 +1107,38 @@
   }
 
   function buildBatchRecordsFromTable(rows, headers) {
+    const FIELD_MAP = {
+      "学员编号": "studentId",
+      "studentId": "studentId",
+      "标题": "title",
+      "title": "title",
+      "副标题": "subtitle",
+      "subtitle": "subtitle",
+      "高中阶段/学士阶段": "highSchoolStage",
+      "高中阶段": "highSchoolStage",
+      "highSchoolStage": "highSchoolStage",
+      "副学士阶段": "associateStage",
+      "associateStage": "associateStage",
+      "学士阶段/硕士阶段": "bachelorStage",
+      "学士阶段": "bachelorStage",
+      "bachelorStage": "bachelorStage",
+      "图片1": "image1",
+      "image1": "image1",
+      "图片2": "image2",
+      "image2": "image2",
+      "图片3": "image3",
+      "image3": "image3",
+      "图片4": "image4",
+      "image4": "image4",
+      "图片5": "image5",
+      "image5": "image5",
+    };
+    const normalizedKey = (header) => FIELD_MAP[sanitizeText(header)] || sanitizeText(header);
+
     return rows.map((row) => {
       const record = {};
       headers.forEach((header, index) => {
-        const key = sanitizeText(header);
+        const key = normalizedKey(header);
         if (key) {
           record[key] = (row[index] || "").toString();
         }
