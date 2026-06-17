@@ -2083,60 +2083,14 @@
   }
 
   async function handleBatchImageUpload(event, elements, state, inputConfig) {
-    const rawImages = await readTypedImages(event.target.files, "");
-    const classifiedImages = rawImages.map((image) => {
-      const assetType = classifyImageByKeyword(image.name);
-      return { ...image, assetType };
-    });
-    state.batchImagePool = [...state.batchImagePool, ...classifiedImages];
+    try {
+      const rawImages = await readTypedImages(event.target.files, "");
+      const classifiedImages = rawImages.map((image) => {
+        const assetType = classifyImageByKeyword(image.name);
+        return { ...image, assetType };
+      });
+      state.batchImagePool = [...state.batchImagePool, ...classifiedImages];
 
-    const autoMatched = autoMatchAllRecords(state.batchRecords, state.batchImagePool);
-    const exactMatched = matchRecordImages(state.batchRecords, state.batchImagePool);
-    state.batchRecords = state.batchRecords.map((record) => {
-      const exact = exactMatched.find(r => r.studentId === record.studentId);
-      const auto = autoMatched.find(r => r.studentId === record.studentId);
-      if (exact && exact.missingImages.length === 0) return exact;
-      if (auto && auto.missingImages.length === 0) return auto;
-      return auto || exact || record;
-    });
-
-    event.target.value = "";
-    refreshUI(elements, state, inputConfig);
-  }
-
-  async function handleTableUpload(event, elements, state, inputConfig) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const isXlsx = file.name.toLowerCase().endsWith(".xlsx");
-
-    if (isXlsx) {
-      const data = await file.arrayBuffer();
-      const workbook = typeof XLSX !== "undefined" ? XLSX.read(data, { type: "array" }) : null;
-      if (!workbook) { state.batchRecords = []; return; }
-      const sheetName = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[sheetName];
-      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-      if (rows.length < 2) { state.batchRecords = []; return; }
-      const headers = rows[0].map((h) => (h || "").toString().trim());
-      const dataRows = rows.slice(1).filter((row) => row.some((cell) => cell != null && cell !== ""));
-      state.batchRecords = buildBatchRecordsFromTable(dataRows, headers);
-    } else {
-      const csvText = await file.text();
-      const firstLine = csvText.split("\n")[0] || "";
-      const isNewFormat = firstLine.split(",").length <= 7;
-      if (isNewFormat) {
-        const rows = csvText.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
-        if (rows.length < 2) { state.batchRecords = []; return; }
-        const headers = parseCsvLine(rows[0]);
-        const dataRows = rows.slice(1).map(line => parseCsvLine(line));
-        state.batchRecords = buildBatchRecordsFromTable(dataRows, headers);
-      } else {
-        state.batchRecords = buildBatchRecordsFromCsv(csvText);
-      }
-    }
-
-    if (state.batchImagePool.length) {
       const autoMatched = autoMatchAllRecords(state.batchRecords, state.batchImagePool);
       const exactMatched = matchRecordImages(state.batchRecords, state.batchImagePool);
       state.batchRecords = state.batchRecords.map((record) => {
@@ -2146,10 +2100,88 @@
         if (auto && auto.missingImages.length === 0) return auto;
         return auto || exact || record;
       });
-    }
 
-    event.target.value = "";
-    refreshUI(elements, state, inputConfig);
+      event.target.value = "";
+      refreshUI(elements, state, inputConfig);
+    } catch (error) {
+      event.target.value = "";
+      setStatus(elements, "error", "批量图片读取失败：" + (error.message || "未知错误"));
+    }
+  }
+
+  async function handleTableUpload(event, elements, state, inputConfig) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const isXlsx = file.name.toLowerCase().endsWith(".xlsx");
+
+      if (isXlsx) {
+        if (typeof XLSX === "undefined") {
+          setStatus(elements, "error", "Excel 解析库加载失败，请刷新页面后重试。");
+          state.batchRecords = [];
+          refreshUI(elements, state, inputConfig);
+          return;
+        }
+        const data = await file.arrayBuffer();
+        const workbook = XLSX.read(data, { type: "array" });
+        if (!workbook || !workbook.SheetNames.length) {
+          setStatus(elements, "error", "无法读取 Excel 文件，请检查文件是否损坏。");
+          state.batchRecords = [];
+          refreshUI(elements, state, inputConfig);
+          return;
+        }
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+        if (rows.length < 2) {
+          setStatus(elements, "error", "Excel 表格至少需要包含表头行和一行数据。");
+          state.batchRecords = [];
+          refreshUI(elements, state, inputConfig);
+          return;
+        }
+        const headers = rows[0].map((h) => (h || "").toString().trim());
+        const dataRows = rows.slice(1).filter((row) => row.some((cell) => cell != null && cell !== ""));
+        state.batchRecords = buildBatchRecordsFromTable(dataRows, headers);
+      } else {
+        const csvText = await file.text();
+        const firstLine = csvText.split("\n")[0] || "";
+        const isNewFormat = firstLine.split(",").length <= 7;
+        if (isNewFormat) {
+          const rows = csvText.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+          if (rows.length < 2) {
+            setStatus(elements, "error", "CSV 文件至少需要包含表头行和一行数据。");
+            state.batchRecords = [];
+            refreshUI(elements, state, inputConfig);
+            return;
+          }
+          const headers = parseCsvLine(rows[0]);
+          const dataRows = rows.slice(1).map(line => parseCsvLine(line));
+          state.batchRecords = buildBatchRecordsFromTable(dataRows, headers);
+        } else {
+          state.batchRecords = buildBatchRecordsFromCsv(csvText);
+        }
+      }
+
+      if (state.batchImagePool.length) {
+        const autoMatched = autoMatchAllRecords(state.batchRecords, state.batchImagePool);
+        const exactMatched = matchRecordImages(state.batchRecords, state.batchImagePool);
+        state.batchRecords = state.batchRecords.map((record) => {
+          const exact = exactMatched.find(r => r.studentId === record.studentId);
+          const auto = autoMatched.find(r => r.studentId === record.studentId);
+          if (exact && exact.missingImages.length === 0) return exact;
+          if (auto && auto.missingImages.length === 0) return auto;
+          return auto || exact || record;
+        });
+      }
+
+      event.target.value = "";
+      refreshUI(elements, state, inputConfig);
+    } catch (error) {
+      event.target.value = "";
+      setStatus(elements, "error", "文件解析失败：" + (error.message || "未知错误"));
+      refreshUI(elements, state, inputConfig);
+    }
   }
 
   function storeLocalResult(state, exportResult, studentId) {
