@@ -1485,3 +1485,33 @@ test("buildBatchRecordsFromTable handles 11-column format", () => {
   assert.equal(records[0].studentId, "stu-001");
   assert.equal(records[0].imageNames.length, 0);
 });
+
+test("validatePosterRecord allows empty associateStage", () => {
+  const { validatePosterRecord } = require("./app.js");
+  const record = { ...sampleRecord, associateStage: "" };
+  const result = validatePosterRecord(record);
+  assert.equal(result.ok, true);
+});
+
+test("validatePosterRecord still rejects empty highSchoolStage", () => {
+  const { validatePosterRecord } = require("./app.js");
+  const record = { ...sampleRecord, highSchoolStage: "" };
+  const result = validatePosterRecord(record);
+  assert.equal(result.ok, false);
+});
+
+test("getActiveStageLayout returns 3-stage layout when associate is filled", () => {
+  const { getActiveStageLayout } = require("./app.js");
+  const layout = getActiveStageLayout({ associateStage: "副学士" }, localBackgroundConfig);
+  assert.equal(layout.hideAssociate, false);
+  assert.equal(layout.showArrow1, true);
+  assert.equal(layout.showArrowHsToBa, false);
+});
+
+test("getActiveStageLayout returns 2-stage layout when associate is empty", () => {
+  const { getActiveStageLayout } = require("./app.js");
+  const layout = getActiveStageLayout({ associateStage: "" }, localBackgroundConfig);
+  assert.equal(layout.hideAssociate, true);
+  assert.equal(layout.showArrow1, false);
+  assert.equal(layout.showArrowHsToBa, true);
+});

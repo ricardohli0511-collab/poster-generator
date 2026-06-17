@@ -56,6 +56,12 @@
             <label for="subtitle-input">副标题</label>
             <input id="subtitle-input" type="text" maxlength="24" placeholder="例如：2026副学士升本科" />
             <p id="error-subtitle" class="field-error" hidden></p>
+            <div class="quick-chips" id="subtitle-chips">
+              <button type="button" class="quick-chip" data-value="副学士升本科">副学士升本科</button>
+              <button type="button" class="quick-chip" data-value="高考升本科">高考升本科</button>
+              <button type="button" class="quick-chip" data-value="国际生升本科">国际生升本科</button>
+              <button type="button" class="quick-chip" data-value="本科升硕士">本科升硕士</button>
+            </div>
           </div>
         </div>
 
@@ -64,6 +70,13 @@
             <label for="high-school-input">高中阶段</label>
             <input id="high-school-input" type="text" maxlength="24" placeholder="例如：国内高考民办本科线" />
             <p id="error-high-school" class="field-error" hidden></p>
+            <div class="quick-chips" id="high-school-chips">
+              <button type="button" class="quick-chip" data-value="高考生">高考生</button>
+              <button type="button" class="quick-chip" data-value="国际生IB">国际生IB</button>
+              <button type="button" class="quick-chip" data-value="国际生AP">国际生AP</button>
+              <button type="button" class="quick-chip" data-value="国际生A-Level">国际生A-Level</button>
+              <button type="button" class="quick-chip" data-value="国际生BC">国际生BC</button>
+            </div>
           </div>
           <div class="field">
             <label for="associate-input">副学士阶段</label>
@@ -205,6 +218,7 @@
                   <div class="path-step-copy" id="preview-associate-text">副学士阶段文案</div>
                 </div>
                 <div class="path-arrow" id="arrow-2"></div>
+                <div class="path-arrow" id="arrow-hs-to-ba" style="display:none"></div>
                 <div class="path-step" id="preview-bachelor">
                   <div class="stage-icon stage-icon-bachelor" aria-hidden="true">
                     <span class="stage-icon-glyph stage-icon-book"></span>

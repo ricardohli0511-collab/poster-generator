@@ -557,9 +557,6 @@
     if (!cleaned.highSchoolStage) {
       errors.highSchoolStage = "请填写高中阶段文案。";
     }
-    if (!cleaned.associateStage) {
-      errors.associateStage = "请填写副学士阶段文案。";
-    }
     if (!cleaned.bachelorStage) {
       errors.bachelorStage = "请填写学士阶段文案。";
     }
@@ -798,13 +795,14 @@
       throw new Error("请先补齐标题、副标题、三阶段文案并上传 1 到 5 张图片。");
     }
     const cleaned = validation.cleaned;
+    const stageLayout = getActiveStageLayout(cleaned, config);
     const exportBackgroundImage = await resolveExportBackgroundImage(config);
     const visibility = getRecordAssetVisibility(cleaned);
     const { width, height } = config.posterSize;
     const pathArea = layout.pathArea || DEFAULT_LAYOUT_REFERENCE.pathArea;
     const highSchoolCard = applyOffsetToPoint({ ...pathArea.cards.highSchool }, "preview-high-school", layoutEditor.offsets);
     const associateCard = applyOffsetToPoint({ ...pathArea.cards.associate }, "preview-associate", layoutEditor.offsets);
-    const bachelorCard = applyOffsetToPoint({ ...pathArea.cards.bachelor }, "preview-bachelor", layoutEditor.offsets);
+    const bachelorCard = applyOffsetToPoint({ ...pathArea.cards.bachelor, y: stageLayout.bachelorY }, "preview-bachelor", layoutEditor.offsets);
     const textBlocks = {
       title: { ...config.textBlocks.title },
       subtitle: { ...config.textBlocks.subtitle },
@@ -826,6 +824,8 @@
     const firstArrowBaseY = associateCard.y - 22;
     const secondArrowStemY = associateCard.y + associateCard.height + 10;
     const secondArrowBaseY = bachelorCard.y - 22;
+    const thirdArrowStemY = highSchoolCard.y + highSchoolCard.height + 10;
+    const thirdArrowBaseY = bachelorCard.y - 22;
 
     const imageLayoutDef = resolvePosterImageLayout(cleaned.images.length, config);
     const mappedImages = mapImagesToPosterSlots(cleaned.images, imageLayoutDef).map((image, index) =>
@@ -947,7 +947,7 @@
       iconType: "high-school",
       iconId: "stage-icon-high-school",
     })}
-  ${isElementHiddenByUser(layoutEditor, "preview-associate") ? "" : createStageCardMarkup({
+  ${!isElementHiddenByUser(layoutEditor, "preview-associate") && !stageLayout.hideAssociate ? createStageCardMarkup({
       x: associateCard.x,
       y: associateCard.y,
       width: associateCard.width,
@@ -958,7 +958,7 @@
       fontSize: 28,
       iconType: "associate",
       iconId: "stage-icon-associate",
-    })}
+    }) : ""}
   ${isElementHiddenByUser(layoutEditor, "preview-bachelor") ? "" : createStageCardMarkup({
       x: bachelorCard.x,
       y: bachelorCard.y,
@@ -972,14 +972,18 @@
       iconId: "stage-icon-bachelor",
     })}
   <!-- 箭头在所有卡片之后渲染，保证不被遮挡 -->
-  ${isElementHiddenByUser(layoutEditor, "preview-high-school") || isElementHiddenByUser(layoutEditor, "preview-associate") ? "" : `
+  ${!isElementHiddenByUser(layoutEditor, "preview-high-school") && !isElementHiddenByUser(layoutEditor, "preview-associate") && stageLayout.showArrow1 ? `
     <rect x="${arrowStemX}" y="${firstArrowStemY}" width="22" height="54" rx="7" fill="url(#goldFill)" filter="drop-shadow(0px 4px 6px rgba(0,0,0,0.4))" />
     <polygon points="${arrowTipX},${firstArrowBaseY + 52} ${arrowTipX - 42},${firstArrowBaseY} ${arrowTipX + 42},${firstArrowBaseY}" fill="url(#goldFill)" filter="drop-shadow(0px 4px 6px rgba(0,0,0,0.4))" />
-  `}
-  ${isElementHiddenByUser(layoutEditor, "preview-associate") || isElementHiddenByUser(layoutEditor, "preview-bachelor") ? "" : `
+  ` : ""}
+  ${!isElementHiddenByUser(layoutEditor, "preview-associate") && !isElementHiddenByUser(layoutEditor, "preview-bachelor") && stageLayout.showArrow2 ? `
     <rect x="${arrowStemX}" y="${secondArrowStemY}" width="22" height="54" rx="7" fill="url(#goldFill)" filter="drop-shadow(0px 4px 6px rgba(0,0,0,0.4))" />
     <polygon points="${arrowTipX},${secondArrowBaseY + 52} ${arrowTipX - 42},${secondArrowBaseY} ${arrowTipX + 42},${secondArrowBaseY}" fill="url(#goldFill)" filter="drop-shadow(0px 4px 6px rgba(0,0,0,0.4))" />
-  `}
+  ` : ""}
+  ${stageLayout.showArrowHsToBa ? `
+    <rect x="${arrowStemX}" y="${thirdArrowStemY}" width="22" height="54" rx="7" fill="url(#goldFill)" filter="drop-shadow(0px 4px 6px rgba(0,0,0,0.4))" />
+    <polygon points="${arrowTipX},${thirdArrowBaseY + 52} ${arrowTipX - 42},${thirdArrowBaseY} ${arrowTipX + 42},${thirdArrowBaseY}" fill="url(#goldFill)" filter="drop-shadow(0px 4px 6px rgba(0,0,0,0.4))" />
+  ` : ""}
   ${createImageMarkup(mappedImages)}
   ${visibility.showCertificateChip && !isElementHiddenByUser(layoutEditor, "preview-certificate-chip") ? createChipMarkup({ ...certChipLayout, text: config.fixedCopy.imageLabel, fontSize: 18 }) : ""}
   ${visibility.showOfferChip && !isElementHiddenByUser(layoutEditor, "preview-offer-chip") ? createChipMarkup({ ...offerChipLayout, text: "真实Offer", fontSize: 17, id: "offer-chip" }) : ""}
@@ -1120,6 +1124,30 @@
         missingImages: [],
       };
     });
+  }
+
+  function getActiveStageLayout(record, config) {
+    const layout = (config && config.layoutReference) || DEFAULT_LAYOUT_REFERENCE;
+    const pathCards = (layout.pathArea && layout.pathArea.cards) || DEFAULT_LAYOUT_REFERENCE.pathArea.cards;
+    const hasAssociate = !!(record && record.associateStage || "").trim();
+
+    if (hasAssociate) {
+      return {
+        hideAssociate: false,
+        bachelorY: pathCards.bachelor.y,
+        showArrow1: true,
+        showArrow2: true,
+        showArrowHsToBa: false,
+      };
+    }
+
+    return {
+      hideAssociate: true,
+      bachelorY: pathCards.associate.y,
+      showArrow1: false,
+      showArrow2: false,
+      showArrowHsToBa: true,
+    };
   }
 
   function classifyImageByKeyword(filename) {
@@ -1567,6 +1595,7 @@
     const visibility = getRecordAssetVisibility(cleanedRecord);
     const pathArea = config.layoutReference?.pathArea || DEFAULT_LAYOUT_REFERENCE.pathArea;
     const pathCards = pathArea.cards || DEFAULT_LAYOUT_REFERENCE.pathArea.cards;
+    const stageLayout = getActiveStageLayout(state.manualRecord, config);
     const previewHighSchoolCard =
       elements.previewHighSchoolCard || (typeof document !== "undefined" ? document.getElementById("preview-high-school") : null);
     const previewAssociateCard =
@@ -1627,7 +1656,7 @@
       previewBachelorCard,
       "preview-bachelor",
       pathCards.bachelor.x,
-      pathCards.bachelor.y,
+      stageLayout.bachelorY,
       pathCards.bachelor.width,
       pathCards.bachelor.height
     );
@@ -1635,7 +1664,7 @@
       previewHighSchoolCard.hidden = isElementHiddenByUser(layoutEditor, "preview-high-school");
     }
     if (previewAssociateCard) {
-      previewAssociateCard.hidden = isElementHiddenByUser(layoutEditor, "preview-associate");
+      previewAssociateCard.hidden = isElementHiddenByUser(layoutEditor, "preview-associate") || stageLayout.hideAssociate;
     }
     if (previewBachelorCard) {
       previewBachelorCard.hidden = isElementHiddenByUser(layoutEditor, "preview-bachelor");
@@ -1660,17 +1689,27 @@
       }
       const arrow1 = document.getElementById("arrow-1");
       const arrow2 = document.getElementById("arrow-2");
+      const arrowHsToBa = document.getElementById("arrow-hs-to-ba");
       if (arrow1) {
         const gap1MidY = (pathCards.highSchool.y + pathCards.highSchool.height + pathCards.associate.y) / 2;
         arrow1.style.left = `calc(${pathCenterX} / var(--canvas-width) * 100%)`;
         arrow1.style.top = `calc(${gap1MidY} / var(--canvas-height) * 100%)`;
         arrow1.style.transform = "translateX(-50%) translateY(-50%)";
+        arrow1.style.display = stageLayout.showArrow1 ? "" : "none";
       }
       if (arrow2) {
         const gap2MidY = (pathCards.associate.y + pathCards.associate.height + pathCards.bachelor.y) / 2;
         arrow2.style.left = `calc(${pathCenterX} / var(--canvas-width) * 100%)`;
         arrow2.style.top = `calc(${gap2MidY} / var(--canvas-height) * 100%)`;
         arrow2.style.transform = "translateX(-50%) translateY(-50%)";
+        arrow2.style.display = stageLayout.showArrow2 ? "" : "none";
+      }
+      if (arrowHsToBa) {
+        const hsToBaMidY = (pathCards.highSchool.y + pathCards.highSchool.height + stageLayout.bachelorY) / 2;
+        arrowHsToBa.style.left = `calc(${pathCenterX} / var(--canvas-width) * 100%)`;
+        arrowHsToBa.style.top = `calc(${hsToBaMidY} / var(--canvas-height) * 100%)`;
+        arrowHsToBa.style.transform = "translateX(-50%) translateY(-50%)";
+        arrowHsToBa.style.display = stageLayout.showArrowHsToBa ? "" : "none";
       }
     }
 
@@ -2554,6 +2593,19 @@
       });
     }
 
+    function bindQuickChip(containerId, inputElement) {
+      document.querySelector(containerId)?.addEventListener("click", (event) => {
+        const chip = event.target.closest(".quick-chip");
+        if (!chip || !inputElement) return;
+        inputElement.value = chip.dataset.value;
+        syncManualForm(elements, state);
+        refreshUI(elements, state, config);
+      });
+    }
+
+    bindQuickChip("#subtitle-chips", elements.subtitleInput);
+    bindQuickChip("#high-school-chips", elements.highSchoolInput);
+
     refreshUI(elements, state, config);
     checkBrandAssetsAvailability(config).then((result) => {
       state.brandAssetsAvailable = result.ok;
@@ -2594,6 +2646,7 @@
     mapImagesToPosterSlots,
     createPosterSvgMarkup,
     exportPoster,
+    getActiveStageLayout,
     buildBatchRecordsFromCsv,
     buildBatchRecordsFromTable,
     matchRecordImages,
