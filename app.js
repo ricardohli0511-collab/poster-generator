@@ -822,10 +822,13 @@
     const arrowTipX = pathCenterX;
     const firstArrowStemY = highSchoolCard.y + highSchoolCard.height + 10;
     const firstArrowBaseY = associateCard.y - 22;
+    const firstArrowRectH = Math.max(20, firstArrowBaseY - firstArrowStemY);
     const secondArrowStemY = associateCard.y + associateCard.height + 10;
     const secondArrowBaseY = bachelorCard.y - 22;
+    const secondArrowRectH = Math.max(20, secondArrowBaseY - secondArrowStemY);
     const thirdArrowStemY = highSchoolCard.y + highSchoolCard.height + 10;
     const thirdArrowBaseY = bachelorCard.y - 22;
+    const thirdArrowRectH = Math.max(20, thirdArrowBaseY - thirdArrowStemY);
 
     const imageLayoutDef = resolvePosterImageLayout(cleaned.images.length, config);
     const mappedImages = mapImagesToPosterSlots(cleaned.images, imageLayoutDef).map((image, index) =>
@@ -973,15 +976,15 @@
     })}
   <!-- 箭头在所有卡片之后渲染，保证不被遮挡 -->
   ${!isElementHiddenByUser(layoutEditor, "preview-high-school") && !isElementHiddenByUser(layoutEditor, "preview-associate") && stageLayout.showArrow1 ? `
-    <rect x="${arrowStemX}" y="${firstArrowStemY}" width="22" height="54" rx="7" fill="url(#goldFill)" filter="drop-shadow(0px 4px 6px rgba(0,0,0,0.4))" />
+    <rect x="${arrowStemX}" y="${firstArrowStemY}" width="22" height="${firstArrowRectH}" rx="7" fill="url(#goldFill)" filter="drop-shadow(0px 4px 6px rgba(0,0,0,0.4))" />
     <polygon points="${arrowTipX},${firstArrowBaseY + 52} ${arrowTipX - 42},${firstArrowBaseY} ${arrowTipX + 42},${firstArrowBaseY}" fill="url(#goldFill)" filter="drop-shadow(0px 4px 6px rgba(0,0,0,0.4))" />
   ` : ""}
   ${!isElementHiddenByUser(layoutEditor, "preview-associate") && !isElementHiddenByUser(layoutEditor, "preview-bachelor") && stageLayout.showArrow2 ? `
-    <rect x="${arrowStemX}" y="${secondArrowStemY}" width="22" height="54" rx="7" fill="url(#goldFill)" filter="drop-shadow(0px 4px 6px rgba(0,0,0,0.4))" />
+    <rect x="${arrowStemX}" y="${secondArrowStemY}" width="22" height="${secondArrowRectH}" rx="7" fill="url(#goldFill)" filter="drop-shadow(0px 4px 6px rgba(0,0,0,0.4))" />
     <polygon points="${arrowTipX},${secondArrowBaseY + 52} ${arrowTipX - 42},${secondArrowBaseY} ${arrowTipX + 42},${secondArrowBaseY}" fill="url(#goldFill)" filter="drop-shadow(0px 4px 6px rgba(0,0,0,0.4))" />
   ` : ""}
   ${stageLayout.showArrowHsToBa ? `
-    <rect x="${arrowStemX}" y="${thirdArrowStemY}" width="22" height="54" rx="7" fill="url(#goldFill)" filter="drop-shadow(0px 4px 6px rgba(0,0,0,0.4))" />
+    <rect x="${arrowStemX}" y="${thirdArrowStemY}" width="22" height="${thirdArrowRectH}" rx="7" fill="url(#goldFill)" filter="drop-shadow(0px 4px 6px rgba(0,0,0,0.4))" />
     <polygon points="${arrowTipX},${thirdArrowBaseY + 52} ${arrowTipX - 42},${thirdArrowBaseY} ${arrowTipX + 42},${thirdArrowBaseY}" fill="url(#goldFill)" filter="drop-shadow(0px 4px 6px rgba(0,0,0,0.4))" />
   ` : ""}
   ${createImageMarkup(mappedImages)}
@@ -1644,14 +1647,16 @@
       pathCards.highSchool.width,
       pathCards.highSchool.height
     );
-    applyDragOffsetsToElement(
-      previewAssociateCard,
-      "preview-associate",
-      pathCards.associate.x,
-      pathCards.associate.y,
-      pathCards.associate.width,
-      pathCards.associate.height
-    );
+    if (!stageLayout.hideAssociate) {
+      applyDragOffsetsToElement(
+        previewAssociateCard,
+        "preview-associate",
+        pathCards.associate.x,
+        pathCards.associate.y,
+        pathCards.associate.width,
+        pathCards.associate.height
+      );
+    }
     applyDragOffsetsToElement(
       previewBachelorCard,
       "preview-bachelor",
@@ -1683,6 +1688,11 @@
     if (typeof document !== "undefined") {
       const badgeRow = document.querySelector(".path-title-row");
       const hsOff = (layoutEditor.offsets || {})["preview-high-school"] || { dx: 0, dy: 0 };
+      const asOff = (layoutEditor.offsets || {})["preview-associate"] || { dx: 0, dy: 0 };
+      const baOff = (layoutEditor.offsets || {})["preview-bachelor"] || { dx: 0, dy: 0 };
+      const hsY = pathCards.highSchool.y + (hsOff.dy || 0);
+      const asY = pathCards.associate.y + (asOff.dy || 0);
+      const baY = stageLayout.bachelorY + (baOff.dy || 0);
       const pathCenterX = pathCards.highSchool.x + pathCards.highSchool.width / 2 + (hsOff.dx || 0);
       if (badgeRow && badgeRow.style) {
         badgeRow.style.top = `calc(${pathArea.titleLineY} / var(--canvas-height) * 100%)`;
@@ -1691,21 +1701,21 @@
       const arrow2 = document.getElementById("arrow-2");
       const arrowHsToBa = document.getElementById("arrow-hs-to-ba");
       if (arrow1) {
-        const gap1MidY = (pathCards.highSchool.y + pathCards.highSchool.height + pathCards.associate.y) / 2;
+        const gap1MidY = (hsY + pathCards.highSchool.height + asY) / 2;
         arrow1.style.left = `calc(${pathCenterX} / var(--canvas-width) * 100%)`;
         arrow1.style.top = `calc(${gap1MidY} / var(--canvas-height) * 100%)`;
         arrow1.style.transform = "translateX(-50%) translateY(-50%)";
         arrow1.style.display = stageLayout.showArrow1 ? "" : "none";
       }
       if (arrow2) {
-        const gap2MidY = (pathCards.associate.y + pathCards.associate.height + pathCards.bachelor.y) / 2;
+        const gap2MidY = (asY + pathCards.associate.height + baY) / 2;
         arrow2.style.left = `calc(${pathCenterX} / var(--canvas-width) * 100%)`;
         arrow2.style.top = `calc(${gap2MidY} / var(--canvas-height) * 100%)`;
         arrow2.style.transform = "translateX(-50%) translateY(-50%)";
         arrow2.style.display = stageLayout.showArrow2 ? "" : "none";
       }
       if (arrowHsToBa) {
-        const hsToBaMidY = (pathCards.highSchool.y + pathCards.highSchool.height + stageLayout.bachelorY) / 2;
+        const hsToBaMidY = (hsY + pathCards.highSchool.height + baY) / 2;
         arrowHsToBa.style.left = `calc(${pathCenterX} / var(--canvas-width) * 100%)`;
         arrowHsToBa.style.top = `calc(${hsToBaMidY} / var(--canvas-height) * 100%)`;
         arrowHsToBa.style.transform = "translateX(-50%) translateY(-50%)";
@@ -1921,13 +1931,14 @@
     const cleaned = createNormalizedRecord(record || {});
     const layout = config.layoutReference || DEFAULT_LAYOUT_REFERENCE;
     const pathArea = layout.pathArea || DEFAULT_LAYOUT_REFERENCE.pathArea;
+    const stageLayout = getActiveStageLayout(cleaned, config);
     const imageLayouts =
       cleaned.images.length > 0 ? resolvePosterImageLayout(cleaned.images.length, config) : [];
     const visibility = getRecordAssetVisibility(cleaned);
     const registry = {
       "preview-high-school": { defaultX: pathArea.cards.highSchool.x, defaultY: pathArea.cards.highSchool.y },
       "preview-associate": { defaultX: pathArea.cards.associate.x, defaultY: pathArea.cards.associate.y },
-      "preview-bachelor": { defaultX: pathArea.cards.bachelor.x, defaultY: pathArea.cards.bachelor.y },
+      "preview-bachelor": { defaultX: pathArea.cards.bachelor.x, defaultY: stageLayout.bachelorY },
       "preview-subtitle-pill": { defaultX: pathArea.pill.x, defaultY: pathArea.pill.y },
     };
     imageLayouts.forEach((layoutItem, index) => {
