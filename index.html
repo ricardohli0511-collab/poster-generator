@@ -67,7 +67,7 @@
 
         <div class="field-grid three-columns">
           <div class="field">
-            <label for="high-school-input">高中阶段</label>
+            <label for="high-school-input">高中阶段/学士阶段</label>
             <input id="high-school-input" type="text" maxlength="24" placeholder="例如：国内高考民办本科线" />
             <p id="error-high-school" class="field-error" hidden></p>
             <div class="quick-chips" id="high-school-chips">
@@ -84,7 +84,7 @@
             <p id="error-associate" class="field-error" hidden></p>
           </div>
           <div class="field">
-            <label for="bachelor-input">学士阶段</label>
+            <label for="bachelor-input">学士阶段/硕士阶段</label>
             <input id="bachelor-input" type="text" maxlength="24" placeholder="例如：岭南大学 公共管理及智能管治学士" />
             <p id="error-bachelor" class="field-error" hidden></p>
           </div>
@@ -208,7 +208,7 @@
                   <div class="stage-icon stage-icon-high-school" aria-hidden="true">
                     <span class="stage-icon-glyph stage-icon-cap"></span>
                   </div>
-                  <div class="path-step-copy" id="preview-high-school-text">高中阶段文案</div>
+                  <div class="path-step-copy" id="preview-high-school-text">高中阶段/学士阶段文案</div>
                 </div>
                 <div class="path-arrow" id="arrow-1"></div>
                 <div class="path-step" id="preview-associate">
@@ -223,7 +223,7 @@
                   <div class="stage-icon stage-icon-bachelor" aria-hidden="true">
                     <span class="stage-icon-glyph stage-icon-book"></span>
                   </div>
-                  <div class="path-step-copy" id="preview-bachelor-text">学士阶段文案</div>
+                  <div class="path-step-copy" id="preview-bachelor-text">学士阶段/硕士阶段文案</div>
                 </div>
               </section>
 
@@ -282,7 +282,7 @@
         <div class="panel-header">
           <h2>批量导入</h2>
           <p>
-            上传 Excel（.xlsx）或 CSV 表格导入学员数据。表格只需 6 列：<code>学员编号、标题、副标题、高中阶段、副学士阶段、学士阶段</code>。
+            上传 Excel（.xlsx）或 CSV 表格导入学员数据。表格只需 6 列：<code>学员编号、标题、副标题、高中阶段/学士阶段、副学士阶段、学士阶段/硕士阶段</code>。
             <a href="#" id="download-template-link">下载空白模板</a>
           </p>
         </div>

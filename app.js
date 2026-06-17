@@ -117,9 +117,9 @@
     "preview-secondary-image-b": "辅图位 B",
     "preview-secondary-image-c": "辅图位 C",
     "preview-secondary-image-d": "辅图位 D",
-    "preview-high-school": "高中阶段卡片",
+    "preview-high-school": "高中阶段/学士阶段卡片",
     "preview-associate": "副学士阶段卡片",
-    "preview-bachelor": "学士阶段卡片",
+    "preview-bachelor": "学士阶段/硕士阶段卡片",
     "preview-certificate-chip": "成绩单标签",
     "preview-offer-chip": "Offer 标签",
     "preview-subtitle-pill": "副标题标签",
@@ -555,10 +555,10 @@
     }
 
     if (!cleaned.highSchoolStage) {
-      errors.highSchoolStage = "请填写高中阶段文案。";
+      errors.highSchoolStage = "请填写高中阶段/学士阶段文案。";
     }
     if (!cleaned.bachelorStage) {
-      errors.bachelorStage = "请填写学士阶段文案。";
+      errors.bachelorStage = "请填写学士阶段/硕士阶段文案。";
     }
 
     if (cleaned.totalImageCount < 1 || cleaned.totalImageCount > 5) {
@@ -1632,9 +1632,9 @@
       elements.previewSubtitlePill.textContent = state.manualRecord.subtitle || "2026副学士升本科";
       elements.previewSubtitlePill.hidden = isElementHiddenByUser(layoutEditor, "preview-subtitle-pill");
     }
-    setText(elements.previewHighSchool, splitStageLines(state.manualRecord.highSchoolStage || "高中阶段文案").join("\n"));
+    setText(elements.previewHighSchool, splitStageLines(state.manualRecord.highSchoolStage || "高中阶段/学士阶段文案").join("\n"));
     setText(elements.previewAssociate, splitStageLines(state.manualRecord.associateStage || "副学士阶段文案").join("\n"));
-    setText(elements.previewBachelor, splitStageLines(state.manualRecord.bachelorStage || "学士阶段文案").join("\n"));
+    setText(elements.previewBachelor, splitStageLines(state.manualRecord.bachelorStage || "学士阶段/硕士阶段文案").join("\n"));
 
     applyDragOffsetsToElement(
       previewHighSchoolCard,
@@ -2445,7 +2445,7 @@
     if (elements.downloadTemplateLink) {
       elements.downloadTemplateLink.addEventListener("click", (event) => {
         event.preventDefault();
-        const headers = ["学员编号", "标题", "副标题", "高中阶段", "副学士阶段", "学士阶段"];
+        const headers = ["学员编号", "标题", "副标题", "高中阶段/学士阶段", "副学士阶段", "学士阶段/硕士阶段"];
         const rows = [headers, ["stu-001", "示例标题", "示例副标题", "示例高中阶段", "示例副学士阶段", "示例学士阶段"]];
         const csv = rows.map(row => row.join(",")).join("\n");
         const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
