@@ -603,21 +603,49 @@
       .replace(/'/g, "&apos;");
   }
 
-  function splitStageLines(text) {
+  function splitStageLines(text, maxLines) {
     const cleaned = sanitizeText(text);
     if (!cleaned) {
       return [""];
     }
-    const firstSpaceIndex = cleaned.indexOf(" ");
-    if (firstSpaceIndex > 0 && firstSpaceIndex < cleaned.length - 1) {
-      return [cleaned.slice(0, firstSpaceIndex), cleaned.slice(firstSpaceIndex + 1)];
+    const limit = Math.max(1, Math.min(maxLines || 2, 3));
+    if (limit === 1 || cleaned.length <= 12) {
+      return [cleaned];
     }
-    // 中文/无空格长文本：超过12个字符自动折半换行，防止绘制超出卡片边界
-    if (cleaned.length > 12) {
+    if (cleaned.includes(" ")) {
+      const words = cleaned.split(" ");
+      if (words.length === 2 && limit >= 2) {
+        return [words[0], words[1]];
+      }
+      if (words.length >= 3 && limit >= 3) {
+        const lines = [];
+        let current = "";
+        const maxPerLine = Math.ceil(cleaned.length / 3) + 2;
+        for (const word of words) {
+          if (current && (current + " " + word).length > maxPerLine) {
+            lines.push(current);
+            current = word;
+            if (lines.length >= 2) break;
+          } else {
+            current = current ? current + " " + word : word;
+          }
+        }
+        if (current) lines.push(current);
+        if (lines.length <= 3) return lines;
+        return [words.slice(0, 2).join(" "), words.slice(2).join(" ")];
+      }
+      return [words.join(" ")];
+    }
+    if (cleaned.length <= 24) {
       const mid = Math.ceil(cleaned.length / 2);
       return [cleaned.slice(0, mid), cleaned.slice(mid)];
     }
-    return [cleaned];
+    const size = Math.ceil(cleaned.length / 3);
+    return [
+      cleaned.slice(0, size),
+      cleaned.slice(size, size * 2),
+      cleaned.slice(size * 2),
+    ];
   }
 
   function createMultilineTextMarkup(lines, x, centerY, options = {}) {
@@ -727,21 +755,23 @@
     fontSize = 30,
     iconType,
     iconId,
+    maxLines = 2,
   }) {
-    const lines = splitStageLines(text);
-    // 卡片内文字区域 clipPath，防止长文本溢出覆盖装饰元素
+    const lines = splitStageLines(text, maxLines);
+    const lineCount = lines.length;
+    const dynamicHeight = height + Math.max(0, lineCount - 2) * 64;
     const textClipId = `textclip-${iconId}-${Math.random().toString(36).substr(2, 5)}`;
     return `
       <g filter="drop-shadow(0px 16px 40px rgba(2,10,40,0.7))">
-        <rect x="${x - 2}" y="${y - 2}" width="${width + 4}" height="${height + 4}" rx="24" fill="none" stroke="url(#luxGold)" stroke-opacity="0.5" stroke-width="3" />
-        <rect x="${x}" y="${y}" width="${width}" height="${height}" rx="22" fill="url(#glassPanel)" stroke="url(#goldStroke)" stroke-width="1.5" />
-        <rect x="${x + 2}" y="${y + 2}" width="${width - 4}" height="${height - 4}" rx="20" fill="none" stroke="#ffffff" stroke-opacity="0.15" stroke-width="1" />
+        <rect x="${x - 2}" y="${y - 2}" width="${width + 4}" height="${dynamicHeight + 4}" rx="24" fill="none" stroke="url(#luxGold)" stroke-opacity="0.5" stroke-width="3" />
+        <rect x="${x}" y="${y}" width="${width}" height="${dynamicHeight}" rx="22" fill="url(#glassPanel)" stroke="url(#goldStroke)" stroke-width="1.5" />
+        <rect x="${x + 2}" y="${y + 2}" width="${width - 4}" height="${dynamicHeight - 4}" rx="20" fill="none" stroke="#ffffff" stroke-opacity="0.15" stroke-width="1" />
         <rect x="${x + height / 2 - 12}" y="${y - 12}" width="24" height="24" fill="url(#goldFill)" transform="rotate(45 ${x + height / 2} ${y})" stroke="#ffffff" stroke-width="1" />
-        <rect x="${x + width - height / 2 - 12}" y="${y + height - 12}" width="24" height="24" fill="url(#goldFill)" transform="rotate(45 ${x + width - height / 2} ${y + height})" stroke="#ffffff" stroke-width="1" />
-        <rect x="${x + 6}" y="${y + 18}" width="4" height="${height - 36}" rx="2" fill="url(#metalGold)" opacity="0.9" />
-        ${createStageIconMarkup(iconId, iconType, x + 56, y + height / 2)}
+        <rect x="${x + width - height / 2 - 12}" y="${y + dynamicHeight - 12}" width="24" height="24" fill="url(#goldFill)" transform="rotate(45 ${x + width - height / 2} ${y + dynamicHeight})" stroke="#ffffff" stroke-width="1" />
+        <rect x="${x + 6}" y="${y + 18}" width="4" height="${dynamicHeight - 36}" rx="2" fill="url(#metalGold)" opacity="0.9" />
+        ${createStageIconMarkup(iconId, iconType, x + 56, y + dynamicHeight / 2)}
         <clipPath id="${textClipId}">
-          <rect x="${x + 80}" y="${y + 8}" width="${width - 96}" height="${height - 16}" rx="8" />
+          <rect x="${x + 80}" y="${y + 8}" width="${width - 96}" height="${dynamicHeight - 16}" rx="8" />
         </clipPath>
         <g clip-path="url(#${textClipId})">
           ${createMultilineTextMarkup(lines, textX, textY, { fontSize: 28, fill: "url(#luxGold)", fontWeight: "900", letterSpacing: "2.5", lineHeight: 40 })}
@@ -967,6 +997,7 @@
       y: bachelorCard.y,
       width: bachelorCard.width,
       height: bachelorCard.height,
+      maxLines: 3,
       textX: textBlocks.bachelorStage.x,
       textY: textBlocks.bachelorStage.y,
       text: cleaned.bachelorStage,
@@ -1670,7 +1701,10 @@
     }
     setText(elements.previewHighSchool, splitStageLines(state.manualRecord.highSchoolStage || "高中阶段/学士阶段文案").join("\n"));
     setText(elements.previewAssociate, splitStageLines(state.manualRecord.associateStage || "副学士阶段文案").join("\n"));
-    setText(elements.previewBachelor, splitStageLines(state.manualRecord.bachelorStage || "学士阶段/硕士阶段文案").join("\n"));
+    const bachelorPreviewLines = splitStageLines(state.manualRecord.bachelorStage || "学士阶段/硕士阶段文案", 3);
+    setText(elements.previewBachelor, bachelorPreviewLines.join("\n"));
+
+    const bachelorPreviewHeight = pathCards.bachelor.height + Math.max(0, bachelorPreviewLines.length - 2) * 64;
 
     applyDragOffsetsToElement(
       previewHighSchoolCard,
@@ -1696,7 +1730,7 @@
       pathCards.bachelor.x,
       stageLayout.bachelorY,
       pathCards.bachelor.width,
-      pathCards.bachelor.height
+      bachelorPreviewHeight
     );
     if (previewHighSchoolCard) {
       previewHighSchoolCard.hidden = isElementHiddenByUser(layoutEditor, "preview-high-school");
