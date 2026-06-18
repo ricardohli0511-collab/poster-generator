@@ -636,7 +636,7 @@
       }
       return [words.join(" ")];
     }
-    if (cleaned.length <= 24) {
+    if (cleaned.length <= 24 || limit === 2) {
       const mid = Math.ceil(cleaned.length / 2);
       return [cleaned.slice(0, mid), cleaned.slice(mid)];
     }
@@ -760,6 +760,7 @@
     const lines = splitStageLines(text, maxLines);
     const lineCount = lines.length;
     const dynamicHeight = height + Math.max(0, lineCount - 2) * 64;
+    const adjustedTextY = textY + Math.max(0, lineCount - 2) * 32;
     const textClipId = `textclip-${iconId}-${Math.random().toString(36).substr(2, 5)}`;
     return `
       <g filter="drop-shadow(0px 16px 40px rgba(2,10,40,0.7))">
@@ -774,7 +775,7 @@
           <rect x="${x + 80}" y="${y + 8}" width="${width - 96}" height="${dynamicHeight - 16}" rx="8" />
         </clipPath>
         <g clip-path="url(#${textClipId})">
-          ${createMultilineTextMarkup(lines, textX, textY, { fontSize: 28, fill: "url(#luxGold)", fontWeight: "900", letterSpacing: "2.5", lineHeight: 40 })}
+          ${createMultilineTextMarkup(lines, textX, adjustedTextY, { fontSize: 28, fill: "url(#luxGold)", fontWeight: "900", letterSpacing: "2.5", lineHeight: 40 })}
         </g>
       </g>`;
   }
