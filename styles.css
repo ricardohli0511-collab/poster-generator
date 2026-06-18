@@ -873,7 +873,7 @@ input:focus {
 .path-step-copy {
   color: #fff8e7;
   text-align: center;
-  font-size: 24px;
+  font-size: clamp(14px, 2.3cqw, 24px);
   font-weight: 900;
   letter-spacing: 2.5px;
   line-height: 1.45;
@@ -1212,22 +1212,16 @@ input:focus {
   text-decoration: none;
 }
 
-@media (max-width: 1020px) {
-  .workspace {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
 @media (max-width: 1180px) {
 
-  .hero,
-  .workspace {
+  .hero {
     grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 860px) {
 
+  .workspace,
   .field-grid.two-columns,
   .field-grid.three-columns,
   .poster-main {
