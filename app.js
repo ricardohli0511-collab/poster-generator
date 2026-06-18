@@ -775,7 +775,7 @@
           <rect x="${x + 80}" y="${y + 8}" width="${width - 96}" height="${dynamicHeight - 16}" rx="8" />
         </clipPath>
         <g clip-path="url(#${textClipId})">
-          ${createMultilineTextMarkup(lines, textX, adjustedTextY, { fontSize: 28, fill: "url(#luxGold)", fontWeight: "900", letterSpacing: "2.5", lineHeight: 40 })}
+          ${createMultilineTextMarkup(lines, textX, adjustedTextY, { fontSize: lineCount >= 2 ? 24 : 28, fill: "url(#luxGold)", fontWeight: "900", letterSpacing: "2.5", lineHeight: lineCount >= 2 ? 34 : 40 })}
         </g>
       </g>`;
   }
