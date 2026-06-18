@@ -415,6 +415,11 @@ input:focus {
   color: var(--error);
 }
 
+.status-box[data-kind="warning"] {
+  background: rgba(220, 150, 40, 0.1);
+  color: #b88615;
+}
+
 .brand-warning {
   margin: 0 0 14px;
   padding: 12px 14px;

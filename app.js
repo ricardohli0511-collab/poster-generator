@@ -1506,6 +1506,8 @@
     }
   }
 
+  const MAX_BATCH_RECORDS = 50;
+
   const DRAGGABLE_REGISTRY = {
     "preview-high-school": { defaultX: DEFAULT_LAYOUT_REFERENCE.pathArea.cards.highSchool.x, defaultY: DEFAULT_LAYOUT_REFERENCE.pathArea.cards.highSchool.y },
     "preview-associate": { defaultX: DEFAULT_LAYOUT_REFERENCE.pathArea.cards.associate.x, defaultY: DEFAULT_LAYOUT_REFERENCE.pathArea.cards.associate.y },
@@ -2199,6 +2201,11 @@
         }
       }
 
+      if (state.batchRecords.length > MAX_BATCH_RECORDS) {
+        state.batchRecords = state.batchRecords.slice(0, MAX_BATCH_RECORDS);
+        setStatus(elements, "warning", `表格包含的记录数超过上限 ${MAX_BATCH_RECORDS} 条，已截取前 ${MAX_BATCH_RECORDS} 条。`);
+      }
+
       if (state.batchImagePool.length) {
         const autoMatched = autoMatchAllRecords(state.batchRecords, state.batchImagePool);
         const exactMatched = matchRecordImages(state.batchRecords, state.batchImagePool);
@@ -2257,8 +2264,9 @@
   async function handleBatchGenerate(elements, state, inputConfig) {
     try {
       elements.batchGenerateButton.disabled = true;
-      setStatus(elements, "info", "正在批量使用内置固定海报引擎生成正式海报...");
-      const results = await exportBatchPosters(state.batchRecords, inputConfig, state.layoutEditor);
+      const records = state.batchRecords.slice(0, MAX_BATCH_RECORDS);
+      setStatus(elements, "info", `正在批量使用内置固定海报引擎生成正式海报（共 ${records.length} 条）...`);
+      const results = await exportBatchPosters(records, inputConfig, state.layoutEditor);
       const successResults = [];
 
       results.forEach((result) => {
