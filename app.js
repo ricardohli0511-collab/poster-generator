@@ -166,6 +166,8 @@
       output[key] = {
         dx: Number(value?.dx) || 0,
         dy: Number(value?.dy) || 0,
+        scale: Number.isFinite(Number(value?.scale)) && Number(value?.scale) > 0 ? Number(value.scale) : 1,
+        rotate: Number(value?.rotate) || 0,
       };
     });
     return output;
@@ -293,7 +295,21 @@
       ...point,
       x: point.x + (off.dx || 0),
       y: point.y + (off.dy || 0),
+      userScale: Number.isFinite(Number(off.scale)) && Number(off.scale) > 0 ? Number(off.scale) : 1,
+      userRotate: Number(off.rotate) || 0,
     };
+  }
+
+  const IMAGE_ELEMENT_IDS = [
+    "preview-primary-image",
+    "preview-secondary-image-a",
+    "preview-secondary-image-b",
+    "preview-secondary-image-c",
+    "preview-secondary-image-d",
+  ];
+
+  function isImageElementId(elementId) {
+    return IMAGE_ELEMENT_IDS.includes(elementId);
   }
 
   function getStorageCollection(storageKey) {
@@ -706,8 +722,11 @@
         const centerY = image.y + image.height / 2;
         const clipId = `clip-${index}-${Math.random().toString(36).substr(2, 5)}`;
         const diamond = 16; // 角饰菱形边长的一半
+        const totalRotate = (image.rotate || 0) + (image.userRotate || 0);
+        const userScale = Number.isFinite(Number(image.userScale)) && Number(image.userScale) > 0 ? Number(image.userScale) : 1;
+        const groupTransform = `translate(${centerX} ${centerY}) rotate(${totalRotate}) scale(${userScale}) translate(${-centerX} ${-centerY})`;
         return `
-        <g transform="rotate(${image.rotate || 0} ${centerX} ${centerY})" filter="drop-shadow(0px 28px 56px rgba(2,10,40,0.65))">
+        <g transform="${groupTransform}" filter="drop-shadow(0px 28px 56px rgba(2,10,40,0.65))">
           <!-- 外层虚影金边 -->
           <rect x="${image.x - 6}" y="${image.y - 6}" width="${image.width + 12}" height="${image.height + 12}" rx="20" fill="none" stroke="url(#luxGold)" stroke-opacity="0.25" stroke-width="3" />
           <!-- 主金边 -->
@@ -1257,12 +1276,16 @@
 
   async function exportBatchPosters(records, inputConfig, layoutEditorState) {
     return Promise.all(
-      (records || []).map(async (record) => {
+      (records || []).map(async (record, index) => {
         try {
+          const output = await exportPoster(record, inputConfig, layoutEditorState);
+          if (!record.studentId) {
+            output.fileName = `student-case-${index + 1}-poster.svg`;
+          }
           return {
             studentId: record.studentId,
             ok: true,
-            output: await exportPoster(record, inputConfig, layoutEditorState),
+            output,
             missingImages: record.missingImages || [],
           };
         } catch (error) {
@@ -1378,6 +1401,7 @@
       },
       batchRecords: [],
       batchImagePool: [],
+      activeBatchIndex: null,
       generatedResults: [],
       layoutEditor: createDefaultLayoutEditorState(),
       brandAssetsMessage: "",
@@ -1443,9 +1467,12 @@
     }
 
     elements.batchList.innerHTML = "";
-    state.batchRecords.forEach((record) => {
+    state.batchRecords.forEach((record, index) => {
       const item = document.createElement("li");
       item.className = "batch-item";
+      if (state.activeBatchIndex === index) {
+        item.classList.add("preview-active");
+      }
       item.dataset.studentId = record.studentId || "";
 
       const title = document.createElement("strong");
@@ -1466,11 +1493,13 @@
       }
 
       item.addEventListener("click", () => {
+        state.activeBatchIndex = index;
         state.manualRecord = {
           ...state.manualRecord,
           studentId: record.studentId,
           title: record.title,
           subtitle: record.subtitle,
+          pathBadge: record.pathBadge || state.manualRecord.pathBadge || "副学士升本科路径",
           highSchoolStage: record.highSchoolStage,
           associateStage: record.associateStage,
           bachelorStage: record.bachelorStage,
@@ -1481,6 +1510,10 @@
         state.manualRecord = { ...state.manualRecord, ...cleaned };
         setManualRecordImages(state);
         refreshUI(elements, state, globalScope.POSTER_TOOL_CONFIG || {});
+        const previewCard = document.querySelector("#poster-preview");
+        if (previewCard && typeof previewCard.scrollIntoView === "function") {
+          previewCard.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
       });
 
       item.appendChild(title);
@@ -1841,7 +1874,8 @@
             slotEl.style.top = `calc(${slotData.y + (off.dy || 0)} / var(--canvas-height) * 100%)`;
             slotEl.style.width = `calc(${slotData.width} / var(--canvas-width) * 100%)`;
             slotEl.style.height = `calc(${slotData.height} / var(--canvas-height) * 100%)`;
-            slotEl.style.transform = `rotate(${slotData.rotate || 0}deg)`;
+            slotEl.style.transformOrigin = "center center";
+            slotEl.style.transform = `rotate(${(slotData.rotate || 0) + (off.rotate || 0)}deg) scale(${off.scale ?? 1})`;
           }
         });
 
@@ -2076,6 +2110,16 @@
     if (elements.hideSelectedBtn) {
       elements.hideSelectedBtn.disabled = !selectedElementId;
     }
+    const isImageSelected = isImageElementId(selectedElementId);
+    [
+      elements.imageScaleUpBtn,
+      elements.imageScaleDownBtn,
+      elements.imageRotateLeftBtn,
+      elements.imageRotateRightBtn,
+      elements.imageTransformResetBtn,
+    ].forEach((btn) => {
+      if (btn) btn.disabled = !isImageSelected;
+    });
     if (elements.deleteLayoutBtn) {
       elements.deleteLayoutBtn.disabled = !elements.loadLayoutSelect?.value;
     }
@@ -2431,6 +2475,11 @@
       hideSelectedBtn: document.querySelector("#hide-selected-btn"),
       restoreHiddenBtn: document.querySelector("#restore-hidden-btn"),
       resetLayoutBtn: document.querySelector("#reset-layout-btn"),
+      imageScaleUpBtn: document.querySelector("#image-scale-up-btn"),
+      imageScaleDownBtn: document.querySelector("#image-scale-down-btn"),
+      imageRotateLeftBtn: document.querySelector("#image-rotate-left-btn"),
+      imageRotateRightBtn: document.querySelector("#image-rotate-right-btn"),
+      imageTransformResetBtn: document.querySelector("#image-transform-reset-btn"),
       layoutSelectionLabel: document.querySelector("#layout-selection-label"),
       layoutPersistenceLabel: document.querySelector("#layout-persistence-label"),
       errorMap: {
@@ -2729,6 +2778,44 @@
         refreshUI(elements, state, config);
         setStatus(elements, "success", "已恢复默认布局。");
       });
+    }
+
+    function applyImageTransform(change) {
+      const current = getResolvedLayoutEditorState(state.layoutEditor);
+      const selectedElementId = current.selectedElementId;
+      if (!isImageElementId(selectedElementId)) return;
+      const offsets = cloneOffsetsMap(current.offsets);
+      const entry = offsets[selectedElementId] || { dx: 0, dy: 0, scale: 1, rotate: 0 };
+      if (change.reset) {
+        entry.scale = 1;
+        entry.rotate = 0;
+      }
+      if (change.dScale) {
+        entry.scale = Math.min(3, Math.max(0.3, (Number(entry.scale) || 1) + change.dScale));
+      }
+      if (change.dRotate) {
+        entry.rotate = ((Number(entry.rotate) || 0) + change.dRotate) % 360;
+      }
+      offsets[selectedElementId] = entry;
+      setLayoutDragOffsets(offsets);
+      state.layoutEditor = getResolvedLayoutEditorState();
+      refreshUI(elements, state, config);
+    }
+
+    if (elements.imageScaleUpBtn) {
+      elements.imageScaleUpBtn.addEventListener("click", () => applyImageTransform({ dScale: 0.1 }));
+    }
+    if (elements.imageScaleDownBtn) {
+      elements.imageScaleDownBtn.addEventListener("click", () => applyImageTransform({ dScale: -0.1 }));
+    }
+    if (elements.imageRotateLeftBtn) {
+      elements.imageRotateLeftBtn.addEventListener("click", () => applyImageTransform({ dRotate: -15 }));
+    }
+    if (elements.imageRotateRightBtn) {
+      elements.imageRotateRightBtn.addEventListener("click", () => applyImageTransform({ dRotate: 15 }));
+    }
+    if (elements.imageTransformResetBtn) {
+      elements.imageTransformResetBtn.addEventListener("click", () => applyImageTransform({ reset: true }));
     }
 
     function bindQuickChip(containerId, inputElement) {

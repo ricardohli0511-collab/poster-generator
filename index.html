@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700;900&display=swap"
     rel="stylesheet" />
-  <link rel="stylesheet" href="./styles.css" />
+  <link rel="stylesheet" href="./styles.css?v=20260622" />
 </head>
 
 <body>
@@ -170,6 +170,14 @@
             <button id="restore-hidden-btn" type="button" class="ghost-button layout-mini-button">恢复全部隐藏</button>
             <button id="reset-layout-btn" type="button" class="ghost-button layout-mini-button">恢复默认布局</button>
           </div>
+          <div class="layout-control-group">
+            <span class="layout-control-label">图片变换</span>
+            <button id="image-scale-up-btn" type="button" class="ghost-button layout-mini-button" disabled>放大</button>
+            <button id="image-scale-down-btn" type="button" class="ghost-button layout-mini-button" disabled>缩小</button>
+            <button id="image-rotate-left-btn" type="button" class="ghost-button layout-mini-button" disabled>左旋</button>
+            <button id="image-rotate-right-btn" type="button" class="ghost-button layout-mini-button" disabled>右旋</button>
+            <button id="image-transform-reset-btn" type="button" class="ghost-button layout-mini-button" disabled>重置变换</button>
+          </div>
           <div class="layout-control-meta">
             <span id="layout-selection-label">未选中模块</span>
             <span id="layout-persistence-label">拖拽图片、标签和卡片可调整位置</span>
@@ -291,6 +299,7 @@
             上传 Excel（.xlsx）或 CSV 表格导入学员数据。表格只需 6 列：<code>学员编号、标题、副标题、高中阶段/学士阶段、副学士阶段、学士阶段/硕士阶段</code>。
             <a href="#" id="download-template-link">下载空白模板</a>
           </p>
+          <p class="field-hint">提示：点击下方任意一条记录，即可在上方预览区查看效果并调整布局，调整后的布局会应用到全部批量海报。</p>
         </div>
 
         <div class="field">
@@ -327,7 +336,7 @@
 
   <script src="./template-config.example.js"></script>
   <script src="./assets/xlsx.full.min.js"></script>
-  <script src="./app.js"></script>
+  <script src="./app.js?v=20260622"></script>
 </body>
 
 </html>

@@ -1087,6 +1087,7 @@ input:focus {
   cursor: grab;
   user-select: none;
   -webkit-user-select: none;
+  touch-action: none;
 }
 
 .preview-photo-slot.dragging,

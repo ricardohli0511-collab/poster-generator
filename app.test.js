@@ -886,7 +886,7 @@ test("drag handlers accumulate offsets across repeated drags", () => {
   handleDragMove({ preventDefault() { }, clientX: 120, clientY: 130 });
   handleDragEnd();
 
-  assert.deepEqual(getLayoutDragOffsets()["preview-high-school"], { dx: 10, dy: 15 });
+  assert.deepEqual(getLayoutDragOffsets()["preview-high-school"], { dx: 10, dy: 15, scale: 1, rotate: 0 });
 
   handleDragStart(
     { preventDefault() { }, clientX: 120, clientY: 130 },
@@ -897,7 +897,7 @@ test("drag handlers accumulate offsets across repeated drags", () => {
   handleDragMove({ preventDefault() { }, clientX: 140, clientY: 170 });
   handleDragEnd();
 
-  assert.deepEqual(getLayoutDragOffsets()["preview-high-school"], { dx: 20, dy: 35 });
+  assert.deepEqual(getLayoutDragOffsets()["preview-high-school"], { dx: 20, dy: 35, scale: 1, rotate: 0 });
 
   global.document = originalDocument;
   global.__posterDragOffsets = undefined;
@@ -936,7 +936,7 @@ test("createLayoutPresetSnapshot keeps only layout data", () => {
 
   assert.equal(snapshot.name, "主视觉模板");
   assert.deepEqual(snapshot.offsets, {
-    "preview-primary-image": { dx: 12, dy: 18 },
+    "preview-primary-image": { dx: 12, dy: 18, scale: 1, rotate: 0 },
   });
   assert.deepEqual(snapshot.visibility, {
     "preview-offer-chip": { hiddenByUser: true },
@@ -957,7 +957,7 @@ test("createLayoutDraftSnapshot keeps form data and layout state", () => {
   assert.equal(snapshot.name, "当前草稿");
   assert.equal(snapshot.manualRecord.title, typedRecord.title);
   assert.deepEqual(snapshot.offsets, {
-    "preview-primary-image": { dx: 20, dy: 22 },
+    "preview-primary-image": { dx: 20, dy: 22, scale: 1, rotate: 0 },
   });
   assert.deepEqual(snapshot.visibility, {
     "preview-high-school": { hiddenByUser: true },
@@ -1146,6 +1146,18 @@ test("resolvePosterImageLayout returns the expected fixed layout for 1 to 3 imag
   assert.equal(resolvePosterImageLayout(1, sampleConfig).length, 1);
   assert.equal(resolvePosterImageLayout(2, sampleConfig).length, 2);
   assert.equal(resolvePosterImageLayout(3, sampleConfig).length, 3);
+});
+
+test("createPosterSvgMarkup applies user scale and rotate to image modules", async () => {
+  const svg = await createPosterSvgMarkup(sampleRecord, shiftedPathAreaConfig, {
+    offsets: {
+      "preview-primary-image": { dx: 0, dy: 0, scale: 1.5, rotate: 30 },
+    },
+    visibility: {},
+  });
+
+  assert.match(svg, /scale\(1\.5\)/);
+  assert.match(svg, /translate\([-\d. ]+\) rotate\([-\d.]+\) scale\(1\.5\) translate\([-\d. ]+\)/);
 });
 
 test("template config defines a formal layout for four images", () => {
