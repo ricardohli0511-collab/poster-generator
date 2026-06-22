@@ -456,6 +456,7 @@
       studentId: sanitizeText(record?.studentId),
       title: sanitizeText(record?.title),
       subtitle: sanitizeText(record?.subtitle),
+      pathBadge: sanitizeText(record?.pathBadge) || "副学士升本科路径",
       highSchoolStage: sanitizeText(record?.highSchoolStage),
       associateStage: sanitizeText(record?.associateStage),
       bachelorStage: sanitizeText(record?.bachelorStage),
@@ -963,12 +964,11 @@
   <rect x="${layout.titleFrame.innerX}" y="${layout.titleFrame.innerY}" width="${layout.titleFrame.innerWidth}" height="${layout.titleFrame.innerHeight}" rx="12" fill="none" stroke="url(#goldStroke)" stroke-opacity="0.18" stroke-width="1.5" />
   <rect x="${layout.titleFrame.x + 4}" y="${layout.titleFrame.y + 4}" width="${layout.titleFrame.width - 8}" height="${Math.round(layout.titleFrame.height * 0.35)}" rx="14" fill="url(#titleHighlight)" />
   <text x="${textBlocks.title.x}" y="${textBlocks.title.y}" text-anchor="middle" fill="url(#luxGold)" font-size="96" font-weight="900" letter-spacing="14" filter="drop-shadow(0px 8px 16px rgba(0,0,0,0.6))">${escapeXml(cleaned.title)}</text>
-  <text x="${textBlocks.subtitle.x}" y="${textBlocks.subtitle.y}" text-anchor="middle" fill="url(#metalGold)" font-size="28" font-weight="700" letter-spacing="14" filter="drop-shadow(0px 4px 8px rgba(0,0,0,0.4))">${escapeXml(cleaned.subtitle)}</text>
   <line x1="${leftLineStartX}" y1="${pathArea.titleLineY}" x2="${leftLineEndX}" y2="${pathArea.titleLineY}" stroke="url(#metalGold)" stroke-width="2.5" stroke-linecap="round" />
   <line x1="${rightLineStartX}" y1="${pathArea.titleLineY}" x2="${rightLineEndX}" y2="${pathArea.titleLineY}" stroke="url(#metalGold)" stroke-width="2.5" stroke-linecap="round" />
   <rect x="${leftDiamondX}" y="${pathArea.titleLineY - 7}" width="12" height="12" fill="url(#goldFill)" transform="rotate(45 ${leftDiamondX + 6} ${pathArea.titleLineY - 1})" stroke="#ffffff" stroke-width="1.2" />
   <rect x="${rightDiamondX}" y="${pathArea.titleLineY - 7}" width="12" height="12" fill="url(#goldFill)" transform="rotate(45 ${rightDiamondX + 6} ${pathArea.titleLineY - 1})" stroke="#ffffff" stroke-width="1.2" />
-  <text x="${pathCenterX}" y="${titleTextY}" text-anchor="middle" fill="url(#metalGold)" font-size="32" font-weight="900" letter-spacing="3" filter="drop-shadow(0px 2px 4px rgba(0,0,0,0.5))">${escapeXml(config.fixedCopy.topBadge)}</text>
+  <text x="${pathCenterX}" y="${titleTextY}" text-anchor="middle" fill="url(#metalGold)" font-size="32" font-weight="900" letter-spacing="3" filter="drop-shadow(0px 2px 4px rgba(0,0,0,0.5))">${escapeXml(cleaned.pathBadge || "副学士升本科路径")}</text>
   ${isElementHiddenByUser(layoutEditor, "preview-subtitle-pill") ? "" : createChipMarkup({ ...subtitlePillLayout, text: cleaned.subtitle, fontSize: 22, id: "subtitle-pill" })}
   ${isElementHiddenByUser(layoutEditor, "preview-high-school") ? "" : createStageCardMarkup({
       x: highSchoolCard.x,
@@ -1360,6 +1360,7 @@
         studentId: "",
         title: "",
         subtitle: "",
+        pathBadge: "副学士升本科路径",
         highSchoolStage: "",
         associateStage: "",
         bachelorStage: "",
@@ -1696,6 +1697,7 @@
 
     setText(elements.previewTitle, state.manualRecord.title || "2026学员成功案例");
     setText(elements.previewSubtitle, state.manualRecord.subtitle || "2026副学士升本科");
+    setText(elements.previewPathBadge, state.manualRecord.pathBadge || "副学士升本科路径");
     if (elements.previewSubtitlePill) {
       elements.previewSubtitlePill.textContent = state.manualRecord.subtitle || "2026副学士升本科";
       elements.previewSubtitlePill.hidden = isElementHiddenByUser(layoutEditor, "preview-subtitle-pill");
@@ -1945,6 +1947,7 @@
     state.manualRecord.studentId = elements.studentIdInput?.value || "";
     state.manualRecord.title = elements.titleInput?.value || "";
     state.manualRecord.subtitle = elements.subtitleInput?.value || "";
+    state.manualRecord.pathBadge = elements.pathBadgeInput?.value || "副学士升本科路径";
     state.manualRecord.highSchoolStage = elements.highSchoolInput?.value || "";
     state.manualRecord.associateStage = elements.associateInput?.value || "";
     state.manualRecord.bachelorStage = elements.bachelorInput?.value || "";
@@ -1954,6 +1957,7 @@
     if (elements.studentIdInput) elements.studentIdInput.value = record.studentId || "";
     if (elements.titleInput) elements.titleInput.value = record.title || "";
     if (elements.subtitleInput) elements.subtitleInput.value = record.subtitle || "";
+    if (elements.pathBadgeInput) elements.pathBadgeInput.value = record.pathBadge || "副学士升本科路径";
     if (elements.highSchoolInput) elements.highSchoolInput.value = record.highSchoolStage || "";
     if (elements.associateInput) elements.associateInput.value = record.associateStage || "";
     if (elements.bachelorInput) elements.bachelorInput.value = record.bachelorStage || "";
@@ -2366,6 +2370,7 @@
       studentIdInput: document.querySelector("#student-id-input"),
       titleInput: document.querySelector("#title-input"),
       subtitleInput: document.querySelector("#subtitle-input"),
+      pathBadgeInput: document.querySelector("#path-badge-input"),
       highSchoolInput: document.querySelector("#high-school-input"),
       associateInput: document.querySelector("#associate-input"),
       bachelorInput: document.querySelector("#bachelor-input"),
@@ -2394,6 +2399,7 @@
       previewTitle: document.querySelector("#preview-title"),
       previewSubtitle: document.querySelector("#preview-subtitle"),
       previewSubtitlePill: document.querySelector("#preview-subtitle-pill"),
+      previewPathBadge: document.querySelector("#preview-path-badge"),
       previewHighSchool: document.querySelector("#preview-high-school-text"),
       previewAssociate: document.querySelector("#preview-associate-text"),
       previewBachelor: document.querySelector("#preview-bachelor-text"),
