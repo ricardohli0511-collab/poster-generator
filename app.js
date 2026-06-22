@@ -1277,6 +1277,14 @@
     );
   }
 
+  function debounce(fn, wait) {
+    let timer = null;
+    return function (...args) {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => fn.apply(this, args), wait);
+    };
+  }
+
   function setText(element, value) {
     if (element) {
       element.textContent = value;
@@ -2533,17 +2541,19 @@
       renderLayoutEditorControls(elements, state);
     });
 
+    const debouncedRefresh = debounce(() => refreshUI(elements, state, config), 120);
     [
       elements.studentIdInput,
       elements.titleInput,
       elements.subtitleInput,
+      elements.pathBadgeInput,
       elements.highSchoolInput,
       elements.associateInput,
       elements.bachelorInput,
     ]
       .filter(Boolean)
       .forEach((input) => {
-        input.addEventListener("input", () => refreshUI(elements, state, config));
+        input.addEventListener("input", debouncedRefresh);
       });
 
     if (elements.certificateImagesInput) {

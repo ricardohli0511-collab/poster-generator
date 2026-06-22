@@ -52,7 +52,7 @@ input {
 }
 
 .workspace {
-  grid-template-columns: minmax(420px, 540px) minmax(0, 480px);
+  grid-template-columns: minmax(380px, 1fr) minmax(340px, 460px);
   align-items: start;
   margin-bottom: 24px;
 }
@@ -168,7 +168,7 @@ input {
 }
 
 .field-grid.three-columns {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
 }
 
 .typed-upload-grid {
@@ -1285,6 +1285,14 @@ input:focus {
 @media (min-width: 861px) {
   .typed-image-groups {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .preview-panel {
+    position: sticky;
+    top: 16px;
+    align-self: start;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
   }
 }
 
