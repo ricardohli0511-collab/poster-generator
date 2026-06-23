@@ -1485,6 +1485,41 @@
     });
   }
 
+  // 将某条批量记录载入到上方预览区，供“点击记录”与“预览调整”按钮共用。
+  // scrollIntoView=true 时滚动到预览区，便于用户立即看到并拖拽调整。
+  function loadBatchRecordIntoPreview(elements, state, index, scrollIntoView = true) {
+    const record = state.batchRecords[index];
+    if (!record) {
+      return;
+    }
+    state.activeBatchIndex = index;
+    state.manualRecord = {
+      ...state.manualRecord,
+      studentId: record.studentId,
+      title: record.title,
+      subtitle: record.subtitle,
+      pathBadge: record.pathBadge || "",
+      highSchoolStage: record.highSchoolStage,
+      associateStage: record.associateStage,
+      bachelorStage: record.bachelorStage,
+      certificateImages: record.certificateImages || [],
+      offerImages: record.offerImages || [],
+    };
+    const cleaned = createNormalizedRecord(state.manualRecord);
+    state.manualRecord = { ...state.manualRecord, ...cleaned };
+    setManualRecordImages(state);
+    // 关键：把批量记录的文字字段写回输入框，否则随后 refreshUI 中的
+    // syncManualForm 会用空输入框的值覆盖刚载入的记录，导致预览“没变化”。
+    writeManualForm(elements, state.manualRecord);
+    refreshUI(elements, state, globalScope.POSTER_TOOL_CONFIG || {});
+    if (scrollIntoView) {
+      const previewCard = document.querySelector("#poster-preview");
+      if (previewCard && typeof previewCard.scrollIntoView === "function") {
+        previewCard.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }
+  }
+
   function renderBatchRecords(elements, state) {
     if (!elements.batchList) {
       return;
@@ -1516,35 +1551,22 @@
         item.dataset.state = "pending";
       }
 
+      const previewButton = document.createElement("button");
+      previewButton.type = "button";
+      previewButton.className = "secondary-button batch-preview-button";
+      previewButton.textContent = "预览调整";
+      previewButton.addEventListener("click", (event) => {
+        event.stopPropagation();
+        loadBatchRecordIntoPreview(elements, state, index, true);
+      });
+
       item.addEventListener("click", () => {
-        state.activeBatchIndex = index;
-        state.manualRecord = {
-          ...state.manualRecord,
-          studentId: record.studentId,
-          title: record.title,
-          subtitle: record.subtitle,
-          pathBadge: record.pathBadge || "",
-          highSchoolStage: record.highSchoolStage,
-          associateStage: record.associateStage,
-          bachelorStage: record.bachelorStage,
-          certificateImages: record.certificateImages || [],
-          offerImages: record.offerImages || [],
-        };
-        const cleaned = createNormalizedRecord(state.manualRecord);
-        state.manualRecord = { ...state.manualRecord, ...cleaned };
-        setManualRecordImages(state);
-        // 关键修复：把批量记录的文字字段写回输入框，否则随后 refreshUI 中的
-        // syncManualForm 会用空输入框的值覆盖刚载入的记录，导致预览“没变化”。
-        writeManualForm(elements, state.manualRecord);
-        refreshUI(elements, state, globalScope.POSTER_TOOL_CONFIG || {});
-        const previewCard = document.querySelector("#poster-preview");
-        if (previewCard && typeof previewCard.scrollIntoView === "function") {
-          previewCard.scrollIntoView({ behavior: "smooth", block: "center" });
-        }
+        loadBatchRecordIntoPreview(elements, state, index, true);
       });
 
       item.appendChild(title);
       item.appendChild(meta);
+      item.appendChild(previewButton);
       elements.batchList.appendChild(item);
     });
   }
@@ -2269,6 +2291,12 @@
 
       event.target.value = "";
       refreshUI(elements, state, inputConfig);
+      // 导入图片完成图片匹配后，刷新预览区当前记录（保留已选中记录，未选中则用第一条），
+      // 让新匹配的图片立即显示在预览中以便调整。
+      if (state.batchRecords.length) {
+        const idx = state.activeBatchIndex != null && state.activeBatchIndex >= 0 ? state.activeBatchIndex : 0;
+        loadBatchRecordIntoPreview(elements, state, idx, false);
+      }
     } catch (error) {
       event.target.value = "";
       setStatus(elements, "error", "批量图片读取失败：" + (error.message || "未知错误"));
@@ -2348,6 +2376,10 @@
 
       event.target.value = "";
       refreshUI(elements, state, inputConfig);
+      // 导入表格后自动把第一条记录载入预览区，用户无需再手动点击即可看到并调整布局。
+      if (state.batchRecords.length) {
+        loadBatchRecordIntoPreview(elements, state, 0, true);
+      }
     } catch (error) {
       event.target.value = "";
       setStatus(elements, "error", "文件解析失败：" + (error.message || "未知错误"));

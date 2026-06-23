@@ -312,6 +312,13 @@ input:focus {
   border-color: rgba(196, 61, 69, 0.2);
 }
 
+.batch-preview-button {
+  justify-self: start;
+  margin-top: 4px;
+  padding: 6px 14px;
+  font-size: 13px;
+}
+
 .ghost-button,
 .primary-button,
 .secondary-button {
