@@ -1527,3 +1527,116 @@ test("getActiveStageLayout returns 2-stage layout when associate is empty", () =
   assert.equal(layout.showArrow1, false);
   assert.equal(layout.showArrowHsToBa, true);
 });
+
+function countOccurrences(haystack, needle) {
+  return haystack.split(needle).length - 1;
+}
+
+test("createNormalizedRecord does not inject a default path badge when absent", () => {
+  const record = createNormalizedRecord({
+    title: "标题",
+    subtitle: "副标题",
+    highSchoolStage: "高中",
+    bachelorStage: "本科",
+  });
+  assert.equal(record.pathBadge, "");
+});
+
+test("createNormalizedRecord preserves a user-provided path badge", () => {
+  const record = createNormalizedRecord({
+    title: "标题",
+    subtitle: "副标题",
+    pathBadge: "国际生升学路径",
+    highSchoolStage: "高中",
+    bachelorStage: "本科",
+  });
+  assert.equal(record.pathBadge, "国际生升学路径");
+});
+
+test("createPosterSvgMarkup renders the subtitle exactly once and omits the hardcoded default path badge", async () => {
+  const svg = await createPosterSvgMarkup(
+    { ...sampleRecord, subtitle: "国际生升读港前三", pathBadge: "" },
+    localBackgroundConfig
+  );
+  // 副标题只通过药丸渲染一次
+  assert.equal(countOccurrences(svg, "国际生升读港前三"), 1);
+  // 未填写路径标签时，不再强制渲染固定文案
+  assert.doesNotMatch(svg, /副学士升本科路径/);
+});
+
+test("createPosterSvgMarkup renders the path badge once only when provided", async () => {
+  const svg = await createPosterSvgMarkup(
+    { ...sampleRecord, subtitle: "国际生升读港前三", pathBadge: "升学路径示意" },
+    localBackgroundConfig
+  );
+  assert.equal(countOccurrences(svg, "升学路径示意"), 1);
+  assert.equal(countOccurrences(svg, "国际生升读港前三"), 1);
+});
+
+// 解析学士卡片区域（y 1180~1480）内 <text> 的 tspan，返回 { text, x, fontSize, letterSpacing }
+function extractStageTextLines(svg) {
+  const result = [];
+  const textRe = /<text\s+x="([\d.]+)"[^>]*font-size="([\d.]+)"[^>]*letter-spacing="([\d.]+)"[^>]*>([\s\S]*?)<\/text>/g;
+  let m;
+  while ((m = textRe.exec(svg)) !== null) {
+    const fontSize = parseFloat(m[2]);
+    const letterSpacing = parseFloat(m[3]);
+    const tspans = [...m[4].matchAll(/<tspan[^>]*x="([\d.]+)"[^>]*y="([\d.]+)"[^>]*>([^<]*)<\/tspan>/g)];
+    tspans.forEach((t) => {
+      const x = parseFloat(t[1]);
+      const y = parseFloat(t[2]);
+      const text = t[3];
+      if (y >= 1180 && y <= 1480 && text.trim().length > 0) {
+        result.push({ text, x, fontSize, letterSpacing });
+      }
+    });
+  }
+  return result;
+}
+
+test("createStageCardMarkup keeps base font size for short stage text", async () => {
+  const svg = await createPosterSvgMarkup(
+    { ...sampleRecord, bachelorStage: "岭南大学公共管理学士" },
+    localBackgroundConfig
+  );
+  const lines = extractStageTextLines(svg);
+  assert.ok(lines.length >= 1, "应解析到学士卡片文本行");
+  // 短文案不触发自适应缩小（保持 24 或 28 基础字号）
+  lines.forEach((line) => {
+    assert.ok(line.fontSize >= 24, `短文案字号不应被缩小，实际 ${line.fontSize}`);
+  });
+});
+
+test("createStageCardMarkup shrinks font size for long multi-university offer text and never drops below 18px", async () => {
+  const svg = await createPosterSvgMarkup(
+    {
+      ...sampleRecord,
+      bachelorStage:
+        "香港大学经济金融学士 香港中文大学工商管理学士 香港科技大学计算机科学学士 香港理工大学会计学学士 香港城市大学数据科学学士",
+    },
+    localBackgroundConfig
+  );
+  const lines = extractStageTextLines(svg);
+  assert.ok(lines.length >= 1, "应解析到学士卡片文本行");
+  // 超长文案触发自适应缩小，字号介于 18~24 之间且不低于下限 18
+  const maxFont = Math.max(...lines.map((l) => l.fontSize));
+  const minFont = Math.min(...lines.map((l) => l.fontSize));
+  assert.ok(maxFont < 24, `超长文案应缩小字号，实际最大 ${maxFont}`);
+  assert.ok(minFont >= 18, `字号不应低于下限 18，实际最小 ${minFont}`);
+});
+
+test("createStageCardMarkup re-centers long stage text on the clip area to avoid left-side overflow", async () => {
+  const svg = await createPosterSvgMarkup(
+    {
+      ...sampleRecord,
+      bachelorStage:
+        "香港大学经济金融学士 香港中文大学工商管理学士 香港科技大学计算机科学学士 香港理工大学会计学学士 香港城市大学数据科学学士",
+    },
+    localBackgroundConfig
+  );
+  const lines = extractStageTextLines(svg);
+  // 长文案使用裁剪区中心作为锚点（> 默认文本锚点 300），从而左右对称、不越界
+  lines.forEach((line) => {
+    assert.ok(line.x > 300, `长文案锚点应右移到裁剪区中心，实际 x=${line.x}`);
+  });
+});

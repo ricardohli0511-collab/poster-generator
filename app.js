@@ -472,7 +472,7 @@
       studentId: sanitizeText(record?.studentId),
       title: sanitizeText(record?.title),
       subtitle: sanitizeText(record?.subtitle),
-      pathBadge: sanitizeText(record?.pathBadge) || "副学士升本科路径",
+      pathBadge: sanitizeText(record?.pathBadge),
       highSchoolStage: sanitizeText(record?.highSchoolStage),
       associateStage: sanitizeText(record?.associateStage),
       bachelorStage: sanitizeText(record?.bachelorStage),
@@ -782,6 +782,30 @@
     const dynamicHeight = height + Math.max(0, lineCount - 2) * 64;
     const adjustedTextY = textY + Math.max(0, lineCount - 2) * 32;
     const textClipId = `textclip-${iconId}-${Math.random().toString(36).substr(2, 5)}`;
+    // 自适应字号：根据行内最大字符数动态缩小，避免长 offer 文案被裁剪区截断。
+    // 行内 <=13 字时保持基础字号；>13 字时线性缩小，下限 18px；
+    // 极端长文案再按裁剪区可用宽度反推字号，并收紧字距，尽量保证 3 行内完整展示。
+    const baseFontSize = lineCount >= 2 ? 24 : 28;
+    const maxLineChars = lines.reduce((max, line) => Math.max(max, [...line].length), 0);
+    let stageFontSize = baseFontSize;
+    let stageLetterSpacing = 2.5;
+    if (maxLineChars > 13) {
+      const usableTextWidth = (width - 96) - 14; // 裁剪区宽度再留安全边
+      const linearFontSize = baseFontSize - (maxLineChars - 13) * 0.75;
+      const widthFitFontSize = usableTextWidth / maxLineChars - stageLetterSpacing;
+      stageFontSize = Math.max(18, Math.min(baseFontSize, linearFontSize, widthFitFontSize));
+      if (stageFontSize <= 18) {
+        // 已触及字号下限仍不够时，再按可用宽度反推并收紧字距，保证 3 行内不裁切
+        const fitSpacing = usableTextWidth / maxLineChars - stageFontSize;
+        stageLetterSpacing = Math.max(0.5, Math.min(2.5, fitSpacing));
+      } else if (stageFontSize <= 20) {
+        stageLetterSpacing = 1.5;
+      }
+    }
+    const stageLineHeight = lineCount >= 2 ? Math.round(stageFontSize + 10) : Math.round(stageFontSize + 12);
+    // 长文案改用裁剪区水平中心为锚点（而非默认 textX），避免因文本中心偏左导致左侧越界裁切
+    const clipCenterX = (x + 80) + (width - 96) / 2;
+    const effectiveTextX = maxLineChars > 13 ? clipCenterX : textX;
     return `
       <g filter="drop-shadow(0px 16px 40px rgba(2,10,40,0.7))">
         <rect x="${x - 2}" y="${y - 2}" width="${width + 4}" height="${dynamicHeight + 4}" rx="24" fill="none" stroke="url(#luxGold)" stroke-opacity="0.5" stroke-width="3" />
@@ -795,7 +819,7 @@
           <rect x="${x + 80}" y="${y + 8}" width="${width - 96}" height="${dynamicHeight - 16}" rx="8" />
         </clipPath>
         <g clip-path="url(#${textClipId})">
-          ${createMultilineTextMarkup(lines, textX, adjustedTextY, { fontSize: lineCount >= 2 ? 24 : 28, fill: "url(#luxGold)", fontWeight: "900", letterSpacing: "2.5", lineHeight: lineCount >= 2 ? 34 : 40 })}
+          ${createMultilineTextMarkup(lines, effectiveTextX, adjustedTextY, { fontSize: stageFontSize, fill: "url(#luxGold)", fontWeight: "900", letterSpacing: String(stageLetterSpacing), lineHeight: stageLineHeight })}
         </g>
       </g>`;
   }
@@ -983,12 +1007,12 @@
   <rect x="${layout.titleFrame.innerX}" y="${layout.titleFrame.innerY}" width="${layout.titleFrame.innerWidth}" height="${layout.titleFrame.innerHeight}" rx="12" fill="none" stroke="url(#goldStroke)" stroke-opacity="0.18" stroke-width="1.5" />
   <rect x="${layout.titleFrame.x + 4}" y="${layout.titleFrame.y + 4}" width="${layout.titleFrame.width - 8}" height="${Math.round(layout.titleFrame.height * 0.35)}" rx="14" fill="url(#titleHighlight)" />
   <text x="${textBlocks.title.x}" y="${textBlocks.title.y}" text-anchor="middle" fill="url(#luxGold)" font-size="96" font-weight="900" letter-spacing="14" filter="drop-shadow(0px 8px 16px rgba(0,0,0,0.6))">${escapeXml(cleaned.title)}</text>
-  <line x1="${leftLineStartX}" y1="${pathArea.titleLineY}" x2="${leftLineEndX}" y2="${pathArea.titleLineY}" stroke="url(#metalGold)" stroke-width="2.5" stroke-linecap="round" />
+  ${cleaned.pathBadge ? `<line x1="${leftLineStartX}" y1="${pathArea.titleLineY}" x2="${leftLineEndX}" y2="${pathArea.titleLineY}" stroke="url(#metalGold)" stroke-width="2.5" stroke-linecap="round" />
   <line x1="${rightLineStartX}" y1="${pathArea.titleLineY}" x2="${rightLineEndX}" y2="${pathArea.titleLineY}" stroke="url(#metalGold)" stroke-width="2.5" stroke-linecap="round" />
   <rect x="${leftDiamondX}" y="${pathArea.titleLineY - 7}" width="12" height="12" fill="url(#goldFill)" transform="rotate(45 ${leftDiamondX + 6} ${pathArea.titleLineY - 1})" stroke="#ffffff" stroke-width="1.2" />
   <rect x="${rightDiamondX}" y="${pathArea.titleLineY - 7}" width="12" height="12" fill="url(#goldFill)" transform="rotate(45 ${rightDiamondX + 6} ${pathArea.titleLineY - 1})" stroke="#ffffff" stroke-width="1.2" />
-  <text x="${pathCenterX}" y="${titleTextY}" text-anchor="middle" fill="url(#metalGold)" font-size="32" font-weight="900" letter-spacing="3" filter="drop-shadow(0px 2px 4px rgba(0,0,0,0.5))">${escapeXml(cleaned.pathBadge || "副学士升本科路径")}</text>
-  ${isElementHiddenByUser(layoutEditor, "preview-subtitle-pill") ? "" : createChipMarkup({ ...subtitlePillLayout, text: cleaned.subtitle, fontSize: 22, id: "subtitle-pill" })}
+  <text x="${pathCenterX}" y="${titleTextY}" text-anchor="middle" fill="url(#metalGold)" font-size="32" font-weight="900" letter-spacing="3" filter="drop-shadow(0px 2px 4px rgba(0,0,0,0.5))">${escapeXml(cleaned.pathBadge)}</text>` : ""}
+  ${(!isElementHiddenByUser(layoutEditor, "preview-subtitle-pill") && cleaned.subtitle) ? createChipMarkup({ ...subtitlePillLayout, text: cleaned.subtitle, fontSize: 22, id: "subtitle-pill" }) : ""}
   ${isElementHiddenByUser(layoutEditor, "preview-high-school") ? "" : createStageCardMarkup({
       x: highSchoolCard.x,
       y: highSchoolCard.y,
@@ -1391,7 +1415,7 @@
         studentId: "",
         title: "",
         subtitle: "",
-        pathBadge: "副学士升本科路径",
+        pathBadge: "",
         highSchoolStage: "",
         associateStage: "",
         bachelorStage: "",
@@ -1499,7 +1523,7 @@
           studentId: record.studentId,
           title: record.title,
           subtitle: record.subtitle,
-          pathBadge: record.pathBadge || state.manualRecord.pathBadge || "副学士升本科路径",
+          pathBadge: record.pathBadge || "",
           highSchoolStage: record.highSchoolStage,
           associateStage: record.associateStage,
           bachelorStage: record.bachelorStage,
@@ -1680,10 +1704,12 @@
         el.releasePointerCapture(dragSession.pointerId);
       }
       const nextEditorState = getResolvedLayoutEditorState();
-      const currentOff = nextEditorState.offsets[dragSession.elementId] || { dx: 0, dy: 0 };
+      const currentOff = nextEditorState.offsets[dragSession.elementId] || { dx: 0, dy: 0, scale: 1, rotate: 0 };
       nextEditorState.offsets[dragSession.elementId] = {
         dx: Math.round((currentOff.dx || 0) + (dragSession.currentDeltaDx || 0)),
         dy: Math.round((currentOff.dy || 0) + (dragSession.currentDeltaDy || 0)),
+        scale: Number.isFinite(Number(currentOff.scale)) && Number(currentOff.scale) > 0 ? Number(currentOff.scale) : 1,
+        rotate: Number(currentOff.rotate) || 0,
       };
       syncGlobalLayoutEditorState(nextEditorState);
     }
@@ -1737,11 +1763,17 @@
     }
 
     setText(elements.previewTitle, state.manualRecord.title || "2026学员成功案例");
-    setText(elements.previewSubtitle, state.manualRecord.subtitle || "2026副学士升本科");
-    setText(elements.previewPathBadge, state.manualRecord.pathBadge || "副学士升本科路径");
+    // 方案 A：副标题统一只通过路径区药丸（subtitle-pill）渲染，隐藏标题下方的旧副标题文本，
+    // 确保预览与正式导出仅展示一次副标题，渲染逻辑完全一致。
+    if (elements.previewSubtitle) {
+      elements.previewSubtitle.hidden = true;
+    }
+    setText(elements.previewPathBadge, state.manualRecord.pathBadge || "");
     if (elements.previewSubtitlePill) {
-      elements.previewSubtitlePill.textContent = state.manualRecord.subtitle || "2026副学士升本科";
-      elements.previewSubtitlePill.hidden = isElementHiddenByUser(layoutEditor, "preview-subtitle-pill");
+      const subtitleText = state.manualRecord.subtitle || "";
+      elements.previewSubtitlePill.textContent = subtitleText;
+      // 仅当用户填写了副标题且未手动隐藏时才展示药丸
+      elements.previewSubtitlePill.hidden = !subtitleText || isElementHiddenByUser(layoutEditor, "preview-subtitle-pill");
     }
     setText(elements.previewHighSchool, splitStageLines(state.manualRecord.highSchoolStage || "高中阶段/学士阶段文案").join("\n"));
     setText(elements.previewAssociate, splitStageLines(state.manualRecord.associateStage || "副学士阶段文案").join("\n"));
@@ -1807,6 +1839,8 @@
       const pathCenterX = pathCards.highSchool.x + pathCards.highSchool.width / 2 + (hsOff.dx || 0);
       if (badgeRow && badgeRow.style) {
         badgeRow.style.top = `calc(${pathArea.titleLineY} / var(--canvas-height) * 100%)`;
+        // 仅当用户填写路径标签时才展示该行（含金色分隔线与菱形装饰），与导出逻辑一致
+        badgeRow.style.display = state.manualRecord.pathBadge ? "" : "none";
       }
       const arrow1 = document.getElementById("arrow-1");
       const arrow2 = document.getElementById("arrow-2");
@@ -1989,7 +2023,7 @@
     state.manualRecord.studentId = elements.studentIdInput?.value || "";
     state.manualRecord.title = elements.titleInput?.value || "";
     state.manualRecord.subtitle = elements.subtitleInput?.value || "";
-    state.manualRecord.pathBadge = elements.pathBadgeInput?.value || "副学士升本科路径";
+    state.manualRecord.pathBadge = elements.pathBadgeInput?.value || "";
     state.manualRecord.highSchoolStage = elements.highSchoolInput?.value || "";
     state.manualRecord.associateStage = elements.associateInput?.value || "";
     state.manualRecord.bachelorStage = elements.bachelorInput?.value || "";
@@ -1999,7 +2033,7 @@
     if (elements.studentIdInput) elements.studentIdInput.value = record.studentId || "";
     if (elements.titleInput) elements.titleInput.value = record.title || "";
     if (elements.subtitleInput) elements.subtitleInput.value = record.subtitle || "";
-    if (elements.pathBadgeInput) elements.pathBadgeInput.value = record.pathBadge || "副学士升本科路径";
+    if (elements.pathBadgeInput) elements.pathBadgeInput.value = record.pathBadge || "";
     if (elements.highSchoolInput) elements.highSchoolInput.value = record.highSchoolStage || "";
     if (elements.associateInput) elements.associateInput.value = record.associateStage || "";
     if (elements.bachelorInput) elements.bachelorInput.value = record.bachelorStage || "";
