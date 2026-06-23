@@ -1533,6 +1533,9 @@
         const cleaned = createNormalizedRecord(state.manualRecord);
         state.manualRecord = { ...state.manualRecord, ...cleaned };
         setManualRecordImages(state);
+        // 关键修复：把批量记录的文字字段写回输入框，否则随后 refreshUI 中的
+        // syncManualForm 会用空输入框的值覆盖刚载入的记录，导致预览“没变化”。
+        writeManualForm(elements, state.manualRecord);
         refreshUI(elements, state, globalScope.POSTER_TOOL_CONFIG || {});
         const previewCard = document.querySelector("#poster-preview");
         if (previewCard && typeof previewCard.scrollIntoView === "function") {
